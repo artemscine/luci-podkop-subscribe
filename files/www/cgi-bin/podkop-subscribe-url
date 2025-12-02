@@ -1,0 +1,50 @@
+#!/bin/sh
+# Podkop Subscribe URL storage endpoint
+
+. /usr/share/libubox/jshn.sh
+
+STORAGE_FILE="/tmp/podkop_subscribe_url.txt"
+
+# Set content type
+echo "Content-Type: application/json"
+echo ""
+
+# Handle GET request - return saved URL
+if [ "$REQUEST_METHOD" = "GET" ]; then
+    json_init
+    if [ -f "$STORAGE_FILE" ]; then
+        saved_url=$(cat "$STORAGE_FILE" 2>/dev/null | head -n 1)
+        json_add_string "url" "$saved_url"
+    else
+        json_add_string "url" ""
+    fi
+    json_dump
+    exit 0
+fi
+
+# Handle POST request - save URL
+if [ "$REQUEST_METHOD" = "POST" ]; then
+    read -r url
+    
+    if [ -z "$url" ]; then
+        json_init
+        json_add_string "error" "URL is required"
+        json_dump
+        exit 1
+    fi
+    
+    # Save URL to file
+    echo "$url" > "$STORAGE_FILE" 2>/dev/null
+    
+    json_init
+    json_add_string "status" "saved"
+    json_dump
+    exit 0
+fi
+
+# Method not allowed
+json_init
+json_add_string "error" "Method not allowed"
+json_dump
+exit 1
+

@@ -1,0 +1,11 @@
+*.ipk
+*.opk
+*.tar.gz
+*.zip
+build/
+*.swp
+*.swo
+*~
+.DS_Store
+*.log
+

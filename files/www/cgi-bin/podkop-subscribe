@@ -1,0 +1,80 @@
+#!/bin/sh
+# Podkop Subscribe HTTP endpoint
+
+. /usr/share/libubox/jshn.sh
+
+# Set content type
+echo "Content-Type: application/json"
+echo ""
+
+# Read POST data
+read -r url
+
+if [ -z "$url" ]; then
+    json_init
+    json_add_string "error" "URL is required"
+    json_dump
+    exit 1
+fi
+
+# Fetch and decode subscribe
+tmpfile="/tmp/podkop_subscribe_$$"
+decoded_file="/tmp/podkop_subscribe_decoded_$$"
+
+# Fetch the subscribe URL
+# Use 'clash' User-Agent to get base64 data instead of HTML
+if ! wget -q -O "$tmpfile" --timeout=30 --user-agent="clash" "$url" 2>/dev/null; then
+    json_init
+    json_add_string "error" "Failed to fetch URL"
+    json_dump
+    rm -f "$tmpfile" "$decoded_file"
+    exit 1
+fi
+
+# Decode base64
+if ! base64 -d "$tmpfile" > "$decoded_file" 2>/dev/null; then
+    json_init
+    json_add_string "error" "Failed to decode base64"
+    json_dump
+    rm -f "$tmpfile" "$decoded_file"
+    exit 1
+fi
+
+# Parse vless URLs
+json_init
+json_add_array "configs"
+
+index=1
+while IFS= read -r line; do
+    # Trim whitespace
+    line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    
+    # Check if it's a vless URL
+    if echo "$line" | grep -q "^vless://"; then
+        # Extract title from URL fragment (#title)
+        title=$(echo "$line" | sed -n 's/.*#\(.*\)$/\1/p')
+        
+        # URL decode title using printf
+        if [ -n "$title" ]; then
+            # Decode %XX sequences
+            title=$(echo "$title" | sed 's/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g' | xargs -0 printf '%b' 2>/dev/null || echo "$title")
+        fi
+        
+        if [ -z "$title" ]; then
+            title="Configuration $index"
+        fi
+        
+        json_add_object
+        json_add_string "url" "$line"
+        json_add_string "title" "$title"
+        json_close_object
+        
+        index=$((index + 1))
+    fi
+done < "$decoded_file"
+
+json_close_array
+json_dump
+
+rm -f "$tmpfile" "$decoded_file"
+

@@ -1,0 +1,11 @@
+{
+  "luci-app-podkop-subscribe": {
+    "description": "Grant access to Podkop Subscribe RPC",
+    "read": {
+      "ubus": {
+        "podkop.subscribe": [ "fetch" ]
+      }
+    }
+  }
+}
+
