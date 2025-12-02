@@ -102,7 +102,7 @@ function createSectionContent(section) {
     form.Value,
     "subscribe_url",
     _("Subscribe URL"),
-    _("Enter Subscribe URL to fetch vless configurations"),
+    _("Введите Subscribe URL для получения конфигураций vless"),
   );
   o.depends("proxy_config_type", "url");
   o.placeholder = "https://example.com/subscribe";
@@ -157,8 +157,8 @@ function createSectionContent(section) {
   o = section.option(
     form.Button,
     "subscribe_fetch",
-    _("Get Configurations"),
-    _("Fetch vless configurations from Subscribe URL"),
+    _("Получить конфигурации"),
+    _("Получить конфигурации vless из Subscribe URL"),
   );
   o.depends("proxy_config_type", "url");
   o.inputtitle = _("Получить");
@@ -176,7 +176,7 @@ function createSectionContent(section) {
     const proxyField = this.section.getOption("proxy_string", section_id);
     
     if (!subscribeField) {
-      ui.addNotification(null, E("p", {}, _("Subscribe URL field not found")));
+      ui.addNotification(null, E("p", {}, _("Поле Subscribe URL не найдено")));
       return false;
     }
 
@@ -236,10 +236,10 @@ function createSectionContent(section) {
       }
     }
     
-    if (!subscribeUrl || subscribeUrl.length === 0) {
-      ui.addNotification(null, E("p", {}, _("Please enter Subscribe URL")));
-      return false;
-    }
+        if (!subscribeUrl || subscribeUrl.length === 0) {
+          ui.addNotification(null, E("p", {}, _("Пожалуйста, введите Subscribe URL")));
+          return false;
+        }
 
     // Find the Subscribe URL input field in DOM to insert list below it
     let subscribeInput = null;
@@ -299,7 +299,7 @@ function createSectionContent(section) {
       const loadingContent = document.createElement("div");
       loadingContent.className = "cbi-value-field";
       loadingContent.style.cssText = "display: inline-block; width: calc(100% - 220px); padding: 10px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1976d2;";
-      loadingContent.textContent = _("Fetching configurations...");
+          loadingContent.textContent = _("Получение конфигураций...");
       loadingIndicator.appendChild(loadingContent);
       
       if (subscribeContainer.nextSibling) {
@@ -325,11 +325,11 @@ function createSectionContent(section) {
           try {
             const result = JSON.parse(xhr.responseText);
 
-            if (!result || !result.configs || result.configs.length === 0) {
-              // Show error in DOM instead of notification
-              const errorDiv = document.createElement("div");
-              errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-              errorDiv.textContent = _("No configurations found");
+                if (!result || !result.configs || result.configs.length === 0) {
+                  // Show error in DOM instead of notification
+                  const errorDiv = document.createElement("div");
+                  errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
+                  errorDiv.textContent = _("Конфигурации не найдены");
               if (subscribeContainer && subscribeContainer.nextSibling) {
                 subscribeContainer.parentNode.insertBefore(errorDiv, subscribeContainer.nextSibling);
               } else if (subscribeContainer) {
@@ -387,11 +387,11 @@ function createSectionContent(section) {
             configListContainer.style.cssText = "margin-top: 15px; margin-bottom: 15px;" + 
               (shouldShow ? "" : "display: none;");
             
-            // Create label container (similar to LuCI form structure)
-            const labelContainer = document.createElement("label");
-            labelContainer.className = "cbi-value-title";
-            labelContainer.style.cssText = "width: 200px; padding-right: 10px; display: inline-block; vertical-align: top;";
-            labelContainer.textContent = _("Available Configurations");
+                // Create label container (similar to LuCI form structure)
+                const labelContainer = document.createElement("label");
+                labelContainer.className = "cbi-value-title";
+                labelContainer.style.cssText = "width: 200px; padding-right: 10px; display: inline-block; vertical-align: top;";
+                labelContainer.textContent = _("Доступные конфигурации");
             configListContainer.appendChild(labelContainer);
             
             // Create content container
@@ -400,8 +400,8 @@ function createSectionContent(section) {
             contentContainer.style.cssText = "display: inline-block; width: calc(100% - 220px);";
             
             const title = document.createElement("div");
-            title.style.cssText = "font-weight: bold; margin-bottom: 10px; font-size: 14px; color: #666;";
-            title.textContent = _("Click on configuration to select") + " (" + configs.length + ")";
+            title.style.cssText = "margin-bottom: 10px; font-size: 14px; color: #666;"; // Removed font-weight: bold
+            title.textContent = _("Нажмите на конфигурацию для выбора") + " (" + configs.length + ")";
             contentContainer.appendChild(title);
             
             const configList = document.createElement("div");
@@ -420,9 +420,9 @@ function createSectionContent(section) {
           this.style.borderColor = "#ccc";
         };
         
-        const configTitle = document.createElement("div");
-        configTitle.style.cssText = "font-weight: bold; margin-bottom: 3px; font-size: 13px;";
-        configTitle.textContent = config.title || _("Configuration") + " " + (index + 1);
+                  const configTitle = document.createElement("div");
+                  configTitle.style.cssText = "font-weight: bold; margin-bottom: 3px; font-size: 13px;";
+                  configTitle.textContent = config.title || _("Конфигурация") + " " + (index + 1);
         configItem.appendChild(configTitle);
         
               // Add click handler
@@ -462,10 +462,10 @@ function createSectionContent(section) {
                   });
                   configItem.style.background = "#d4edda";
                   configItem.style.borderColor = "#28a745";
-                  // Show success message in DOM instead of notification
-                  const successDiv = document.createElement("div");
-                  successDiv.style.cssText = "margin-top: 5px; padding: 5px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; color: #155724; font-size: 12px;";
-                  successDiv.textContent = _("Configuration selected");
+                      // Show success message in DOM instead of notification
+                      const successDiv = document.createElement("div");
+                      successDiv.style.cssText = "margin-top: 5px; padding: 5px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; color: #155724; font-size: 12px;";
+                      successDiv.textContent = _("Конфигурация выбрана");
                   configItem.appendChild(successDiv);
                   setTimeout(function() {
                     if (successDiv.parentNode) {
@@ -493,11 +493,11 @@ function createSectionContent(section) {
             saveUrlXhr.open("POST", "/cgi-bin/podkop-subscribe-url", true);
             saveUrlXhr.setRequestHeader("Content-Type", "text/plain");
             saveUrlXhr.send(subscribeUrl);
-          } catch(e) {
-            // Show error in DOM
-            const errorDiv = document.createElement("div");
-            errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-            errorDiv.textContent = _("Error parsing response: ") + e.message;
+              } catch(e) {
+                // Show error in DOM
+                const errorDiv = document.createElement("div");
+                errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
+                errorDiv.textContent = _("Ошибка при разборе ответа: ") + e.message;
             if (subscribeContainer && subscribeContainer.nextSibling) {
               subscribeContainer.parentNode.insertBefore(errorDiv, subscribeContainer.nextSibling);
             } else if (subscribeContainer) {
@@ -509,11 +509,11 @@ function createSectionContent(section) {
               }
             }, 5000);
           }
-        } else {
-          // Show error in DOM
-          const errorDiv = document.createElement("div");
-          errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-          errorDiv.textContent = _("Error fetching configurations: HTTP ") + xhr.status;
+            } else {
+              // Show error in DOM
+              const errorDiv = document.createElement("div");
+              errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
+              errorDiv.textContent = _("Ошибка при получении конфигураций: HTTP ") + xhr.status;
           if (subscribeContainer && subscribeContainer.nextSibling) {
             subscribeContainer.parentNode.insertBefore(errorDiv, subscribeContainer.nextSibling);
           } else if (subscribeContainer) {
@@ -533,10 +533,10 @@ function createSectionContent(section) {
       if (loadingIndicator && loadingIndicator.parentNode) {
         loadingIndicator.parentNode.removeChild(loadingIndicator);
       }
-      // Show error in DOM
-      const errorDiv = document.createElement("div");
-      errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-      errorDiv.textContent = _("Network error while fetching configurations");
+          // Show error in DOM
+          const errorDiv = document.createElement("div");
+          errorDiv.style.cssText = "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
+          errorDiv.textContent = _("Ошибка сети при получении конфигураций");
       if (subscribeContainer && subscribeContainer.nextSibling) {
         subscribeContainer.parentNode.insertBefore(errorDiv, subscribeContainer.nextSibling);
       } else if (subscribeContainer) {
