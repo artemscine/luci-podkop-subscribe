@@ -110,6 +110,13 @@ wget -q -O /www/luci-static/resources/view/podkop/section.js "${BASE_URL}/www/lu
 }
 chmod 644 /www/luci-static/resources/view/podkop/section.js
 
+echo "  - Installing subscribe.js..."
+wget -q -O /www/luci-static/resources/view/podkop/subscribe.js "${BASE_URL}/www/luci-static/resources/view/podkop/subscribe.js" || {
+    echo "Error: Failed to download subscribe.js"
+    exit 1
+}
+chmod 644 /www/luci-static/resources/view/podkop/subscribe.js
+
 # Download ACL file
 echo "  - Installing ACL configuration..."
 wget -q -O /usr/share/rpcd/acl.d/luci-app-podkop-subscribe.json "${BASE_URL}/usr/share/rpcd/acl.d/luci-app-podkop-subscribe.json" || {
