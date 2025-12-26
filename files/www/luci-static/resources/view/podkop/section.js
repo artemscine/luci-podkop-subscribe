@@ -24,9 +24,6 @@ function createSectionContent(section) {
     _("Select how to configure the proxy"),
   );
 
-  if (subscribeExt && typeof subscribeExt.enhanceSectionWithSubscribe === "function") {
-    subscribeExt.enhanceSectionWithSubscribe(section);
-  }
   o.value("url", _("Connection URL"));
   o.value("outbound", _("Outbound Config"));
   o.value("urltest", _("URLTest"));
@@ -85,6 +82,10 @@ function createSectionContent(section) {
 
     return validation.message;
   };
+
+  if (subscribeExt && typeof subscribeExt.enhanceSectionWithSubscribe === "function") {
+    subscribeExt.enhanceSectionWithSubscribe(section);
+  }
 
   o = section.option(
     form.DynamicList,

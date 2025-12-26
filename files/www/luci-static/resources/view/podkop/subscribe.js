@@ -6,8 +6,65 @@
 "require baseclass";
 "require view.podkop.main as main";
 
+// Функция для скрытия списков конфигураций
+function hideConfigLists() {
+  const configList = document.getElementById("podkop-subscribe-config-list");
+  if (configList) {
+    configList.style.display = "none";
+  }
+
+  const configListOutbound = document.getElementById(
+    "podkop-subscribe-config-list-outbound"
+  );
+  if (configListOutbound) {
+    configListOutbound.style.display = "none";
+  }
+}
+
+// Функция для инициализации обработчиков изменений
+function initConfigListHandlers() {
+  // Обработчик для connection_type
+  let connectionTypeSelect = document.querySelector(
+    'select[id*="connection_type"]'
+  );
+  if (!connectionTypeSelect) {
+    connectionTypeSelect = document.querySelector(
+      'select[name*="connection_type"]'
+    );
+  }
+
+  if (connectionTypeSelect && !connectionTypeSelect._podkopSubscribeHandler) {
+    const handler = function () {
+      hideConfigLists();
+    };
+    connectionTypeSelect.addEventListener("change", handler);
+    connectionTypeSelect._podkopSubscribeHandler = handler;
+  }
+
+  // Обработчик для proxy_config_type
+  let proxyConfigTypeSelect = document.querySelector(
+    'select[id*="proxy_config_type"]'
+  );
+  if (!proxyConfigTypeSelect) {
+    proxyConfigTypeSelect = document.querySelector(
+      'select[name*="proxy_config_type"]'
+    );
+  }
+
+  if (proxyConfigTypeSelect && !proxyConfigTypeSelect._podkopSubscribeHandler) {
+    const handler = function () {
+      hideConfigLists();
+    };
+    proxyConfigTypeSelect.addEventListener("change", handler);
+    proxyConfigTypeSelect._podkopSubscribeHandler = handler;
+  }
+}
 
 function enhanceSectionWithSubscribe(section) {
+  // Инициализируем обработчики после загрузки DOM
+  setTimeout(function () {
+    initConfigListHandlers();
+  }, 500);
   // Subscribe URL для proxy_config_type = "url"
   let o = section.option(
     form.Value,
@@ -240,8 +297,8 @@ function enhanceSectionWithSubscribe(section) {
             configListContainer.id = "podkop-subscribe-config-list";
             configListContainer.className = "cbi-value";
 
-            // по умолчанию показываем
-            let shouldShow = true;
+            // Проверяем connection_type - показываем только если "proxy"
+            let shouldShow = false;
             try {
               let connectionTypeSelect = document.querySelector(
                 'select[id*="connection_type"]'
@@ -251,24 +308,11 @@ function enhanceSectionWithSubscribe(section) {
                   'select[name*="connection_type"]'
                 );
               }
-              let proxyConfigTypeSelect = document.querySelector(
-                'select[id*="proxy_config_type"]'
-              );
-              if (!proxyConfigTypeSelect) {
-                proxyConfigTypeSelect = document.querySelector(
-                  'select[name*="proxy_config_type"]'
-                );
-              }
-              if (
-                connectionTypeSelect &&
-                proxyConfigTypeSelect &&
-                (connectionTypeSelect.value !== "proxy" ||
-                  proxyConfigTypeSelect.value !== "url")
-              ) {
-                shouldShow = false;
+              if (connectionTypeSelect && connectionTypeSelect.value === "proxy") {
+                shouldShow = true;
               }
             } catch (e) {
-              shouldShow = true;
+              shouldShow = false;
             }
 
             configListContainer.style.cssText =
@@ -404,6 +448,11 @@ function enhanceSectionWithSubscribe(section) {
                 configListContainer
               );
             }
+
+            // Убеждаемся, что обработчики установлены
+            setTimeout(function () {
+              initConfigListHandlers();
+            }, 100);
 
             // Сохраняем URL
             const saveUrlXhr = new XMLHttpRequest();
@@ -719,8 +768,28 @@ function enhanceSectionWithSubscribe(section) {
             configListContainer.id =
               "podkop-subscribe-config-list-outbound";
             configListContainer.className = "cbi-value";
+
+            // Проверяем connection_type - показываем только если "proxy"
+            let shouldShowOutbound = false;
+            try {
+              let connectionTypeSelect = document.querySelector(
+                'select[id*="connection_type"]'
+              );
+              if (!connectionTypeSelect) {
+                connectionTypeSelect = document.querySelector(
+                  'select[name*="connection_type"]'
+                );
+              }
+              if (connectionTypeSelect && connectionTypeSelect.value === "proxy") {
+                shouldShowOutbound = true;
+              }
+            } catch (e) {
+              shouldShowOutbound = false;
+            }
+
             configListContainer.style.cssText =
-              "margin-top: 15px; margin-bottom: 15px;";
+              "margin-top: 15px; margin-bottom: 15px;" +
+              (shouldShowOutbound ? "" : "display: none;");
 
             const labelContainer = document.createElement("label");
             labelContainer.className = "cbi-value-title";
@@ -914,6 +983,11 @@ function enhanceSectionWithSubscribe(section) {
                 configListContainer
               );
             }
+
+            // Убеждаемся, что обработчики установлены
+            setTimeout(function () {
+              initConfigListHandlers();
+            }, 100);
 
             const saveUrlXhr = new XMLHttpRequest();
             saveUrlXhr.open(
