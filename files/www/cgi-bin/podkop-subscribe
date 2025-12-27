@@ -21,13 +21,26 @@ fi
 tmpfile="/tmp/podkop_subscribe_$$"
 decoded_file="/tmp/podkop_subscribe_decoded_$$"
 
+# Cleanup function
+cleanup() {
+    rm -f "$tmpfile" "$decoded_file"
+}
+trap cleanup EXIT
+
 # Fetch the subscribe URL
-# Use 'clash' User-Agent to get base64 data instead of HTML
-if ! wget -q -O "$tmpfile" --timeout=30 --user-agent="clash" "$url" 2>/dev/null; then
+# Use 'v2rayNG' User-Agent to get base64 encoded protocol links
+if ! wget -q -O "$tmpfile" --timeout=30 --user-agent="v2rayNG" "$url" 2>/dev/null; then
     json_init
     json_add_string "error" "Failed to fetch URL"
     json_dump
-    rm -f "$tmpfile" "$decoded_file"
+    exit 1
+fi
+
+# Check if file is empty
+if [ ! -s "$tmpfile" ]; then
+    json_init
+    json_add_string "error" "Empty response from server"
+    json_dump
     exit 1
 fi
 
@@ -36,46 +49,68 @@ if ! base64 -d "$tmpfile" > "$decoded_file" 2>/dev/null; then
     json_init
     json_add_string "error" "Failed to decode base64"
     json_dump
-    rm -f "$tmpfile" "$decoded_file"
     exit 1
 fi
 
-# Parse vless URLs
+# URL decode function using printf
+url_decode() {
+    printf '%b' "$(echo "$1" | sed 's/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')" 2>/dev/null || echo "$1"
+}
+
+# Parse all supported protocols
 json_init
 json_add_array "configs"
 
 index=1
-while IFS= read -r line; do
-    # Trim whitespace
-    line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    
-    # Check if it's a vless URL
-    if echo "$line" | grep -q "^vless://"; then
+while IFS= read -r line || [ -n "$line" ]; do
+    # Trim whitespace and carriage returns
+    line=$(echo "$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    # Skip empty lines
+    [ -z "$line" ] && continue
+
+    # Determine protocol
+    protocol=""
+    case "$line" in
+        vless://*)
+            protocol="vless"
+            ;;
+        ss://*)
+            protocol="ss"
+            ;;
+        trojan://*)
+            protocol="trojan"
+            ;;
+        hy2://*)
+            protocol="hy2"
+            ;;
+        hysteria2://*)
+            protocol="hy2"
+            ;;
+    esac
+
+    if [ -n "$protocol" ]; then
         # Extract title from URL fragment (#title)
         title=$(echo "$line" | sed -n 's/.*#\(.*\)$/\1/p')
-        
-        # URL decode title using printf
+
+        # URL decode title
         if [ -n "$title" ]; then
-            # Decode %XX sequences
-            title=$(echo "$title" | sed 's/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g' | xargs -0 printf '%b' 2>/dev/null || echo "$title")
+            title=$(url_decode "$title")
         fi
-        
+
         if [ -z "$title" ]; then
-            title="Configuration $index"
+            title="Config $index"
         fi
-        
+
         json_add_object
         json_add_string "url" "$line"
         json_add_string "title" "$title"
+        json_add_string "protocol" "$protocol"
         json_close_object
-        
+
         index=$((index + 1))
     fi
 done < "$decoded_file"
 
 json_close_array
 json_dump
-
-rm -f "$tmpfile" "$decoded_file"
-
-

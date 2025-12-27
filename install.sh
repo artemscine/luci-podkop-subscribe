@@ -3,7 +3,7 @@
 
 set -e
 
-REPO_URL="https://raw.githubusercontent.com/mr-Abdrahimov/luci-podkop-subscribe/main"
+REPO_URL="https://raw.githubusercontent.com/artemscine/luci-podkop-subscribe/main"
 BASE_URL="${REPO_URL}/files"
 
 echo "=========================================="
@@ -47,33 +47,53 @@ mkdir -p /www/luci-static/resources/view/podkop
 mkdir -p /usr/share/rpcd/acl.d
 
 echo "Step 2: Backing up original Podkop files..."
-if [ -f /www/luci-static/resources/view/podkop/section.js ]; then
-    # Check if current file contains plugin code
-    if grep -q "podkop-subscribe-config-list\|podkop-subscribe-loading\|podkop-subscribe-url" /www/luci-static/resources/view/podkop/section.js 2>/dev/null; then
-        echo "  ℹ Current file contains plugin code (reinstalling plugin)"
-        # Try to find original file to backup
+
+# Helper function to check if file contains plugin code
+contains_plugin_code() {
+    [ ! -f "$1" ] && return 1
+    grep -q "podkop-subscribe-config-list\|podkop-subscribe-loading\|view.podkop.subscribe\|enhanceSectionWithSubscribe" "$1" 2>/dev/null
+}
+
+# Check if backup already exists and is clean
+if [ -f /www/luci-static/resources/view/podkop/section.js.backup ]; then
+    if ! contains_plugin_code /www/luci-static/resources/view/podkop/section.js.backup; then
+        echo "  ✓ Clean backup already exists"
+    else
+        echo "  ⚠ Existing backup contains plugin code, trying to get clean original..."
+        # Try to get clean original from overlay or opkg
         if [ -f /overlay/upper/www/luci-static/resources/view/podkop/section.js ]; then
-            if ! grep -q "podkop-subscribe-config-list\|podkop-subscribe-loading\|podkop-subscribe-url" /overlay/upper/www/luci-static/resources/view/podkop/section.js 2>/dev/null; then
+            if ! contains_plugin_code /overlay/upper/www/luci-static/resources/view/podkop/section.js; then
                 cp /overlay/upper/www/luci-static/resources/view/podkop/section.js /www/luci-static/resources/view/podkop/section.js.backup
-                echo "  ✓ Backup created from overlay: section.js.backup"
+                echo "  ✓ Backup recreated from overlay"
             fi
         fi
-    else
+    fi
+elif [ -f /www/luci-static/resources/view/podkop/section.js ]; then
+    if ! contains_plugin_code /www/luci-static/resources/view/podkop/section.js; then
         # Current file is original, create backup
-        if [ ! -f /www/luci-static/resources/view/podkop/section.js.backup ]; then
-            cp /www/luci-static/resources/view/podkop/section.js /www/luci-static/resources/view/podkop/section.js.backup
-            echo "  ✓ Backup created: section.js.backup"
+        cp /www/luci-static/resources/view/podkop/section.js /www/luci-static/resources/view/podkop/section.js.backup
+        echo "  ✓ Backup created: section.js.backup"
+    else
+        echo "  ℹ Current file contains plugin code (reinstalling)"
+        # Try to find original in overlay
+        if [ -f /overlay/upper/www/luci-static/resources/view/podkop/section.js ]; then
+            if ! contains_plugin_code /overlay/upper/www/luci-static/resources/view/podkop/section.js; then
+                cp /overlay/upper/www/luci-static/resources/view/podkop/section.js /www/luci-static/resources/view/podkop/section.js.backup
+                echo "  ✓ Backup created from overlay"
+            else
+                echo "  ⚠ No clean original found for backup"
+            fi
         else
-            echo "  ✓ Backup already exists"
+            echo "  ⚠ No clean original found for backup"
         fi
     fi
 else
-    echo "  ⚠ Warning: section.js not found, will be created by plugin installation"
-    # Try to find original file to backup
+    echo "  ⚠ Warning: section.js not found"
+    # Try to find original in overlay
     if [ -f /overlay/upper/www/luci-static/resources/view/podkop/section.js ]; then
-        if ! grep -q "podkop-subscribe-config-list\|podkop-subscribe-loading\|podkop-subscribe-url" /overlay/upper/www/luci-static/resources/view/podkop/section.js 2>/dev/null; then
+        if ! contains_plugin_code /overlay/upper/www/luci-static/resources/view/podkop/section.js; then
             cp /overlay/upper/www/luci-static/resources/view/podkop/section.js /www/luci-static/resources/view/podkop/section.js.backup
-            echo "  ✓ Backup created from overlay: section.js.backup"
+            echo "  ✓ Backup created from overlay"
         fi
     fi
 fi
@@ -88,13 +108,6 @@ wget -q -O /www/cgi-bin/podkop-subscribe "${BASE_URL}/www/cgi-bin/podkop-subscri
 }
 chmod +x /www/cgi-bin/podkop-subscribe
 
-echo "  - Installing podkop-subscribe-url..."
-wget -q -O /www/cgi-bin/podkop-subscribe-url "${BASE_URL}/www/cgi-bin/podkop-subscribe-url" || {
-    echo "Error: Failed to download podkop-subscribe-url"
-    exit 1
-}
-chmod +x /www/cgi-bin/podkop-subscribe-url
-
 echo "  - Installing podkop-xray-config..."
 wget -q -O /www/cgi-bin/podkop-xray-config "${BASE_URL}/www/cgi-bin/podkop-xray-config" || {
     echo "Error: Failed to download podkop-xray-config"
@@ -102,7 +115,7 @@ wget -q -O /www/cgi-bin/podkop-xray-config "${BASE_URL}/www/cgi-bin/podkop-xray-
 }
 chmod +x /www/cgi-bin/podkop-xray-config
 
-# Download JavaScript file
+# Download JavaScript files
 echo "  - Installing section.js..."
 wget -q -O /www/luci-static/resources/view/podkop/section.js "${BASE_URL}/www/luci-static/resources/view/podkop/section.js" || {
     echo "Error: Failed to download section.js"
@@ -116,6 +129,12 @@ wget -q -O /www/luci-static/resources/view/podkop/subscribe.js "${BASE_URL}/www/
     exit 1
 }
 chmod 644 /www/luci-static/resources/view/podkop/subscribe.js
+
+echo "  - Installing subscribe-loader.js..."
+wget -q -O /www/luci-static/resources/view/podkop/subscribe-loader.js "${BASE_URL}/www/luci-static/resources/view/podkop/subscribe-loader.js" || {
+    echo "Warning: Failed to download subscribe-loader.js (optional file)"
+}
+chmod 644 /www/luci-static/resources/view/podkop/subscribe-loader.js 2>/dev/null || true
 
 # Download ACL file
 echo "  - Installing ACL configuration..."
@@ -142,8 +161,9 @@ echo ""
 echo "Features:"
 echo "  - Connection URL mode: Get configurations and apply to Podkop proxy"
 echo "  - Outbound Config mode: Get configurations and apply directly to Xray"
+echo "  - Supported protocols: vless://, ss://, trojan://, hy2://, hysteria2://"
+echo "  - Theme support: Automatically adapts to light/dark themes"
 echo ""
 echo "To uninstall, run:"
 echo "  sh <(wget -O - ${REPO_URL}/uninstall.sh)"
 echo ""
-

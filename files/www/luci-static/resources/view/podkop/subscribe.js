@@ -6,25 +6,176 @@
 "require baseclass";
 "require view.podkop.main as main";
 
-// Функция для скрытия списков конфигураций
-function hideConfigLists() {
-  const configList = document.getElementById("podkop-subscribe-config-list");
-  if (configList) {
-    configList.style.display = "none";
-  }
+// Inject CSS styles for theming support
+function injectSubscribeStyles() {
+  if (document.getElementById("podkop-subscribe-styles")) return;
 
-  const configListOutbound = document.getElementById(
-    "podkop-subscribe-config-list-outbound"
-  );
-  if (configListOutbound) {
-    configListOutbound.style.display = "none";
-  }
+  var style = document.createElement("style");
+  style.id = "podkop-subscribe-styles";
+  style.textContent = `
+    .podkop-subscribe-loading {
+      padding: 10px;
+      background: var(--primary-color-low, #e3f2fd);
+      border: 1px solid var(--primary-color-high, #2196f3);
+      border-radius: 4px;
+      color: var(--primary-color-high, #1976d2);
+    }
+    .podkop-subscribe-error {
+      padding: 10px;
+      background: var(--error-color-low, #ffebee);
+      border: 1px solid var(--error-color-medium, #f44336);
+      border-radius: 4px;
+      color: var(--error-color-medium, #c62828);
+    }
+    .podkop-subscribe-error-small {
+      margin-top: 5px;
+      padding: 5px;
+      background: var(--error-color-low, #ffebee);
+      border: 1px solid var(--error-color-medium, #f44336);
+      border-radius: 4px;
+      color: var(--error-color-medium, #c62828);
+      font-size: 12px;
+    }
+    .podkop-subscribe-success {
+      margin-top: 5px;
+      padding: 5px;
+      background: #28a745;
+      border: 1px solid #1e7e34;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .podkop-subscribe-warning {
+      margin-top: 5px;
+      padding: 5px;
+      background: var(--warn-color-low, #fff3cd);
+      border: 1px solid var(--warn-color-medium, #ffc107);
+      border-radius: 4px;
+      color: var(--warn-color-high, #856404);
+      font-size: 12px;
+    }
+    .podkop-subscribe-title {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: var(--text-color-medium, #666);
+    }
+    .podkop-subscribe-list {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 15px;
+      border: 1px solid var(--background-color-low, #ddd);
+      border-radius: 4px;
+      background: var(--background-color-high, #f9f9f9);
+    }
+    .podkop-subscribe-item {
+      margin: 8px 0;
+      padding: 10px;
+      border: 1px solid var(--background-color-low, #ccc);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--background-color-high, white);
+    }
+    .podkop-subscribe-item:hover {
+      background: var(--primary-color-low, #e8f4f8);
+      border-color: var(--primary-color-high, #0078d4);
+    }
+    .podkop-subscribe-item.selected {
+      background: var(--success-color-low, #d4edda);
+      border-color: var(--success-color-medium, #28a745);
+    }
+    .podkop-subscribe-item-title {
+      font-weight: bold;
+      margin-bottom: 3px;
+      font-size: 13px;
+      color: var(--text-color-high, inherit);
+    }
+    .podkop-subscribe-item-protocol {
+      display: inline-block;
+      padding: 1px 5px;
+      margin-left: 8px;
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: 3px;
+      background: transparent;
+      border: 1px solid currentColor;
+      opacity: 0.7;
+      text-transform: uppercase;
+    }
+    .podkop-subscribe-label {
+      width: 200px;
+      padding-right: 10px;
+      display: inline-block;
+      vertical-align: top;
+    }
+    .podkop-subscribe-field {
+      display: inline-block;
+      width: calc(100% - 220px);
+    }
+    .podkop-subscribe-item.urltest-selected {
+      background: var(--primary-color-low, #e3f2fd);
+      border-color: var(--primary-color-high, #2196f3);
+      position: relative;
+    }
+    .podkop-subscribe-item.urltest-selected::after {
+      content: "✓";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--primary-color-high, #2196f3);
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .podkop-subscribe-item.xhttp-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: var(--error-color-low, #ffebee);
+      border-color: var(--error-color-medium, #f44336);
+    }
+    .podkop-subscribe-item.xhttp-disabled:hover {
+      background: var(--error-color-low, #ffebee);
+      border-color: var(--error-color-medium, #f44336);
+    }
+    .podkop-subscribe-xhttp-badge {
+      display: inline-block;
+      padding: 1px 5px;
+      margin-left: 8px;
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: 3px;
+      background: var(--error-color-low, #ffebee);
+      border: 1px solid var(--error-color-medium, #f44336);
+      color: var(--error-color-medium, #c62828);
+      text-transform: uppercase;
+    }
+    .podkop-subscribe-urltest-counter {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 2px 8px;
+      background: var(--primary-color-high, #2196f3);
+      color: white;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
-// Функция для инициализации обработчиков изменений
+// Hide config lists when connection type changes
+function hideConfigLists() {
+  // Find all config lists by ID prefix pattern
+  var allLists = document.querySelectorAll('[id^="podkop-subscribe-config-list"]');
+  allLists.forEach(function(list) {
+    list.style.display = "none";
+  });
+}
+
+// Initialize change handlers for dropdowns
 function initConfigListHandlers() {
-  // Обработчик для connection_type
-  let connectionTypeSelect = document.querySelector(
+  var connectionTypeSelect = document.querySelector(
     'select[id*="connection_type"]'
   );
   if (!connectionTypeSelect) {
@@ -34,15 +185,14 @@ function initConfigListHandlers() {
   }
 
   if (connectionTypeSelect && !connectionTypeSelect._podkopSubscribeHandler) {
-    const handler = function () {
+    var handler = function () {
       hideConfigLists();
     };
     connectionTypeSelect.addEventListener("change", handler);
     connectionTypeSelect._podkopSubscribeHandler = handler;
   }
 
-  // Обработчик для proxy_config_type
-  let proxyConfigTypeSelect = document.querySelector(
+  var proxyConfigTypeSelect = document.querySelector(
     'select[id*="proxy_config_type"]'
   );
   if (!proxyConfigTypeSelect) {
@@ -52,7 +202,7 @@ function initConfigListHandlers() {
   }
 
   if (proxyConfigTypeSelect && !proxyConfigTypeSelect._podkopSubscribeHandler) {
-    const handler = function () {
+    var handler = function () {
       hideConfigLists();
     };
     proxyConfigTypeSelect.addEventListener("change", handler);
@@ -60,426 +210,509 @@ function initConfigListHandlers() {
   }
 }
 
-function enhanceSectionWithSubscribe(section) {
-  // Инициализируем обработчики после загрузки DOM
-  setTimeout(function () {
-    initConfigListHandlers();
-  }, 500);
-  // Subscribe URL для proxy_config_type = "url"
-  let o = section.option(
-    form.Value,
-    "subscribe_url",
-    _("Subscribe URL"),
-    _("Введите Subscribe URL для получения конфигураций vless")
+// Create error message element
+function createErrorMessage(text, small) {
+  var div = document.createElement("div");
+  div.className = small ? "podkop-subscribe-error-small" : "podkop-subscribe-error";
+  if (!small) {
+    div.style.marginTop = "10px";
+  }
+  div.textContent = text;
+  return div;
+}
+
+// Create success message element
+function createSuccessMessage(text) {
+  var div = document.createElement("div");
+  div.className = "podkop-subscribe-success";
+  div.textContent = text;
+  return div;
+}
+
+// Create warning/loading message element
+function createWarningMessage(text) {
+  var div = document.createElement("div");
+  div.className = "podkop-subscribe-warning";
+  div.textContent = text;
+  return div;
+}
+
+// Find subscribe input field for specific section
+function findSubscribeInput(ev, section_id, fieldName) {
+  var subscribeInput = null;
+
+  // First try: find by exact section_id in element ID (with widget prefix)
+  subscribeInput = document.querySelector(
+    "#widget\\.cbid\\.podkop\\." + section_id + "\\." + fieldName
   );
-  o.depends("proxy_config_type", "url");
-  o.placeholder = "https://example.com/subscribe";
-  o.rmempty = true;
+  if (subscribeInput) return subscribeInput;
 
-  // Загрузка сохранённого Subscribe URL (url)
-  o.load = function (section_id) {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "/cgi-bin/podkop-subscribe-url", true);
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        try {
-          const result = JSON.parse(xhr.responseText);
-          if (result && result.url && result.url.length > 0) {
-            setTimeout(function () {
-              let subscribeInput =
-                document.getElementById(
-                  `widget.cbid.podkop.${section_id}.subscribe_url`
-                ) ||
-                document.getElementById(
-                  `cbid.podkop.${section_id}.subscribe_url`
-                ) ||
-                document.querySelector('input[id*="subscribe_url"]');
-
-              if (subscribeInput) {
-                subscribeInput.value = result.url;
-                if (subscribeInput.dispatchEvent) {
-                  subscribeInput.dispatchEvent(
-                    new Event("change", { bubbles: true })
-                  );
-                }
-              }
-            }, 100);
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-    };
-    xhr.send();
-  };
-
-  // Валидация Subscribe URL (url)
-  o.validate = function (section_id, value) {
-    if (!value || value.length === 0) {
-      return true;
-    }
-    const validation = main.validateUrl(value);
-    if (validation.valid) {
-      return true;
-    }
-    return validation.message;
-  };
-
-  // Кнопка «Получить конфигурации» (proxy_config_type = "url")
-  o = section.option(
-    form.Button,
-    "subscribe_fetch",
-    _("Получить конфигурации"),
-    _("Получить конфигурации vless из Subscribe URL")
+  // Second try: without widget prefix
+  subscribeInput = document.querySelector(
+    "#cbid\\.podkop\\." + section_id + "\\." + fieldName
   );
-  o.depends("proxy_config_type", "url");
-  o.inputtitle = _("Получить");
-  o.inputstyle = "add";
+  if (subscribeInput) return subscribeInput;
 
-  o.onclick = function (ev, section_id) {
-    if (ev && ev.preventDefault) ev.preventDefault();
-    if (ev && ev.stopPropagation) ev.stopPropagation();
+  // Third try: via button's closest section-node
+  if (ev && ev.target) {
+    var button = ev.target.closest("button") || ev.target;
+    var sectionNode = button.closest(".cbi-section-node");
+    if (sectionNode) {
+      subscribeInput = sectionNode.querySelector(
+        'input[id*="' + section_id + '"][id*="' + fieldName + '"]'
+      );
+      if (subscribeInput) return subscribeInput;
 
-    // Достаём значение Subscribe URL из DOM
-    let subscribeUrl = "";
-    try {
-      const button = ev && ev.target ? ev.target : null;
-      if (button) {
-        const parentSection = button.closest(".cbi-section");
-        if (parentSection) {
-          const input = parentSection.querySelector(
-            'input[placeholder*="Subscribe"], input[id*="subscribe_url"]'
-          );
-          if (input) {
-            subscribeUrl = input.value || "";
-          }
-        }
-      }
-    } catch (e) {
-      // ignore
+      subscribeInput = sectionNode.querySelector('input[id*="' + fieldName + '"]');
+      if (subscribeInput) return subscribeInput;
     }
+  }
 
-    if (!subscribeUrl) {
-      try {
-        const inputById = document.querySelector(
-          `#widget\\.cbid\\.podkop\\.${section_id}\\.subscribe_url`
-        );
-        if (inputById) {
-          subscribeUrl = inputById.value || "";
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
+  return null;
+}
 
-    if (!subscribeUrl || subscribeUrl.length === 0) {
-      ui.addNotification(null, E("p", {}, _("Пожалуйста, введите Subscribe URL")));
-      return false;
-    }
+// Get subscribe URL value for specific section
+function getSubscribeUrl(ev, section_id, fieldName) {
+  // Use findSubscribeInput to get the correct input for this section
+  var input = findSubscribeInput(ev, section_id, fieldName);
+  if (input && input.value) {
+    return input.value;
+  }
+  return "";
+}
 
-    // Находим контейнер Subscribe поля
-    let subscribeInput = null;
-    try {
-      const button = ev && ev.target ? ev.target : null;
-      if (button) {
-        const parentSection = button.closest(".cbi-section");
-        if (parentSection) {
-          subscribeInput = parentSection.querySelector(
-            'input[placeholder*="Subscribe"], input[id*="subscribe_url"]'
-          );
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    if (!subscribeInput) {
-      try {
-        subscribeInput =
-          document.querySelector(
-            `#widget\\.cbid\\.podkop\\.${section_id}\\.subscribe_url`
-          ) ||
-          document.querySelector(
-            `#cbid\\.podkop\\.${section_id}\\.subscribe_url`
-          ) ||
-          document.querySelector('input[id*="subscribe_url"]');
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    let subscribeContainer = null;
-    if (subscribeInput) {
-      subscribeContainer =
-        subscribeInput.closest(".cbi-value") ||
-        subscribeInput.closest(".cbi-section") ||
-        subscribeInput.parentElement;
-    }
-
-    // Удаляем старый список конфигов
-    const existingList = document.getElementById(
-      "podkop-subscribe-config-list"
+// Check if should show config list
+function shouldShowConfigList() {
+  try {
+    var connectionTypeSelect = document.querySelector(
+      'select[id*="connection_type"]'
     );
-    if (existingList && existingList.parentNode) {
-      existingList.parentNode.removeChild(existingList);
+    if (!connectionTypeSelect) {
+      connectionTypeSelect = document.querySelector(
+        'select[name*="connection_type"]'
+      );
+    }
+    if (connectionTypeSelect && connectionTypeSelect.value === "proxy") {
+      return true;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return false;
+}
+
+// Check if config URL contains xhttp transport type
+function isXhttpConfig(url) {
+  if (!url || typeof url !== "string") return false;
+  try {
+    // Parse URL parameters
+    var queryStart = url.indexOf("?");
+    if (queryStart === -1) return false;
+
+    var hashStart = url.indexOf("#");
+    var queryString = hashStart > queryStart
+      ? url.substring(queryStart + 1, hashStart)
+      : url.substring(queryStart + 1);
+
+    var params = queryString.split("&");
+    for (var i = 0; i < params.length; i++) {
+      var param = params[i].split("=");
+      if (param[0] === "type" && param[1] === "xhttp") {
+        return true;
+      }
+    }
+  } catch (e) {
+    // ignore parsing errors
+  }
+  return false;
+}
+
+// Get current proxy_config_type value
+function getCurrentProxyConfigType(section_id) {
+  var select = document.querySelector(
+    'select[id*="' + section_id + '"][id*="proxy_config_type"]'
+  );
+  if (!select) {
+    select = document.querySelector('select[id*="proxy_config_type"]');
+  }
+  if (!select) {
+    select = document.querySelector('select[name*="proxy_config_type"]');
+  }
+  return select ? select.value : null;
+}
+
+// Create loading indicator
+function createLoadingIndicator(id) {
+  var loadingIndicator = document.createElement("div");
+  loadingIndicator.id = id;
+  loadingIndicator.className = "cbi-value";
+  loadingIndicator.style.cssText = "margin-top: 10px; margin-bottom: 10px;";
+
+  var loadingLabel = document.createElement("label");
+  loadingLabel.className = "cbi-value-title podkop-subscribe-label";
+  loadingLabel.textContent = "";
+  loadingIndicator.appendChild(loadingLabel);
+
+  var loadingContent = document.createElement("div");
+  loadingContent.className = "cbi-value-field podkop-subscribe-field podkop-subscribe-loading";
+  loadingContent.textContent = _("Получение конфигураций...");
+  loadingIndicator.appendChild(loadingContent);
+
+  return loadingIndicator;
+}
+
+// Create config list UI
+function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest) {
+  var configListContainer = document.createElement("div");
+  configListContainer.id = listId;
+  configListContainer.className = "cbi-value";
+
+  var shouldShow = shouldShowConfigList();
+  configListContainer.style.cssText =
+    "margin-top: 15px; margin-bottom: 15px;" +
+    (shouldShow ? "" : "display: none;");
+
+  var labelContainer = document.createElement("label");
+  labelContainer.className = "cbi-value-title podkop-subscribe-label";
+  labelContainer.textContent = _("Доступные конфигурации");
+  configListContainer.appendChild(labelContainer);
+
+  var contentContainer = document.createElement("div");
+  contentContainer.className = "cbi-value-field podkop-subscribe-field";
+
+  var title = document.createElement("div");
+  title.className = "podkop-subscribe-title";
+
+  var titleText;
+  if (isOutbound) {
+    titleText = _("Нажмите на конфигурацию для применения в Xray");
+  } else if (isUrltest) {
+    titleText = _("Нажмите на конфигурации для добавления в URLTest (повторный клик - удаление)");
+  } else {
+    titleText = _("Нажмите на конфигурацию для выбора");
+  }
+  title.textContent = titleText + " (" + configs.length + ")";
+
+  // Add counter for urltest mode
+  if (isUrltest) {
+    var counter = document.createElement("span");
+    counter.className = "podkop-subscribe-urltest-counter";
+    counter.id = "urltest-counter-" + section_id;
+    counter.textContent = _("Выбрано: 0");
+    title.appendChild(counter);
+  }
+
+  contentContainer.appendChild(title);
+
+  var configList = document.createElement("div");
+  configList.className = "podkop-subscribe-list";
+
+  // Store for urltest selected configs
+  if (isUrltest) {
+    configList._urltestSelected = [];
+  }
+
+  configs.forEach(function (config, index) {
+    var configItem = document.createElement("div");
+    configItem.className = "podkop-subscribe-item";
+
+    // Check if this is an xhttp config
+    var isXhttp = isXhttpConfig(config.url);
+    if (isXhttp && !isOutbound) {
+      configItem.classList.add("xhttp-disabled");
     }
 
-    // Индикатор загрузки
-    let loadingIndicator = null;
-    if (subscribeContainer) {
-      loadingIndicator = document.createElement("div");
-      loadingIndicator.id = "podkop-subscribe-loading";
-      loadingIndicator.className = "cbi-value";
-      loadingIndicator.style.cssText =
-        "margin-top: 10px; margin-bottom: 10px;";
+    var configTitle = document.createElement("div");
+    configTitle.className = "podkop-subscribe-item-title";
 
-      const loadingLabel = document.createElement("label");
-      loadingLabel.className = "cbi-value-title";
-      loadingLabel.style.cssText =
-        "width: 200px; padding-right: 10px; display: inline-block; vertical-align: top;";
-      loadingLabel.textContent = "";
-      loadingIndicator.appendChild(loadingLabel);
+    var titleText = config.title || _("Конфигурация") + " " + (index + 1);
+    configTitle.textContent = titleText;
 
-      const loadingContent = document.createElement("div");
-      loadingContent.className = "cbi-value-field";
-      loadingContent.style.cssText =
-        "display: inline-block; width: calc(100% - 220px); padding: 10px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1976d2;";
-      loadingContent.textContent = _("Получение конфигураций...");
-      loadingIndicator.appendChild(loadingContent);
+    // Add protocol badge
+    if (config.protocol) {
+      var protocolBadge = document.createElement("span");
+      protocolBadge.className = "podkop-subscribe-item-protocol";
+      protocolBadge.textContent = config.protocol;
+      configTitle.appendChild(protocolBadge);
+    }
 
-      if (subscribeContainer.nextSibling) {
-        subscribeContainer.parentNode.insertBefore(
-          loadingIndicator,
-          subscribeContainer.nextSibling
-        );
-      } else {
-        subscribeContainer.parentNode.appendChild(loadingIndicator);
+    // Add xhttp warning badge
+    if (isXhttp && !isOutbound) {
+      var xhttpBadge = document.createElement("span");
+      xhttpBadge.className = "podkop-subscribe-xhttp-badge";
+      xhttpBadge.textContent = "XHTTP";
+      xhttpBadge.title = _("XHTTP не поддерживается в режиме Proxy");
+      configTitle.appendChild(xhttpBadge);
+    }
+
+    configItem.appendChild(configTitle);
+
+    // Store config data on element for urltest
+    configItem._configData = config;
+
+    if (isOutbound) {
+      configItem.onclick = createOutboundClickHandler(config, configItem, configList);
+    } else if (isUrltest) {
+      configItem.onclick = createUrltestClickHandler(config, configItem, configList, section_id, isXhttp);
+    } else {
+      configItem.onclick = createUrlClickHandler(config, configItem, configList, section_id, isXhttp);
+    }
+
+    configList.appendChild(configItem);
+  });
+
+  contentContainer.appendChild(configList);
+  configListContainer.appendChild(contentContainer);
+
+  return configListContainer;
+}
+
+// Click handler for URL mode
+function createUrlClickHandler(config, configItem, configList, section_id, isXhttp) {
+  return function (e) {
+    e.stopPropagation();
+
+    // Block xhttp configs
+    if (isXhttp) {
+      var errorDiv = createErrorMessage(_("XHTTP не поддерживается в режиме Proxy"), true);
+      configItem.appendChild(errorDiv);
+      setTimeout(function () {
+        if (errorDiv.parentNode) {
+          errorDiv.parentNode.removeChild(errorDiv);
+        }
+      }, 3000);
+      return;
+    }
+
+    // Find proxy_string textarea for THIS section (section_id specific first)
+    var proxyTextarea =
+      document.getElementById("widget.cbid.podkop." + section_id + ".proxy_string") ||
+      document.getElementById("cbid.podkop." + section_id + ".proxy_string") ||
+      document.querySelector('textarea[id*="podkop.' + section_id + '.proxy_string"]');
+
+    if (proxyTextarea) {
+      proxyTextarea.value = config.url;
+      if (proxyTextarea.dispatchEvent) {
+        proxyTextarea.dispatchEvent(new Event("change", { bubbles: true }));
+        proxyTextarea.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/cgi-bin/podkop-subscribe", true);
-    xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4) {
-        if (loadingIndicator && loadingIndicator.parentNode) {
-          loadingIndicator.parentNode.removeChild(loadingIndicator);
+    // Reset all items
+    var allItems = configList.querySelectorAll(".podkop-subscribe-item");
+    allItems.forEach(function (item) {
+      item.classList.remove("selected");
+    });
+
+    // Mark selected
+    configItem.classList.add("selected");
+
+    var successDiv = createSuccessMessage(_("Конфигурация выбрана"));
+    configItem.appendChild(successDiv);
+    setTimeout(function () {
+      if (successDiv.parentNode) {
+        successDiv.parentNode.removeChild(successDiv);
+      }
+    }, 2000);
+  };
+}
+
+// Click handler for URLTest mode (multi-select toggle)
+function createUrltestClickHandler(config, configItem, configList, section_id, isXhttp) {
+  return function (e) {
+    e.stopPropagation();
+
+    // Block xhttp configs
+    if (isXhttp) {
+      var errorDiv = createErrorMessage(_("XHTTP не поддерживается в режиме Proxy"), true);
+      configItem.appendChild(errorDiv);
+      setTimeout(function () {
+        if (errorDiv.parentNode) {
+          errorDiv.parentNode.removeChild(errorDiv);
+        }
+      }, 3000);
+      return;
+    }
+
+    // Toggle selection
+    var isCurrentlySelected = configItem.classList.contains("urltest-selected");
+
+    if (isCurrentlySelected) {
+      // Remove from selection
+      configItem.classList.remove("urltest-selected");
+
+      // Remove from array
+      var idx = configList._urltestSelected.indexOf(config.url);
+      if (idx > -1) {
+        configList._urltestSelected.splice(idx, 1);
+      }
+    } else {
+      // Add to selection
+      configItem.classList.add("urltest-selected");
+
+      // Add to array
+      if (configList._urltestSelected.indexOf(config.url) === -1) {
+        configList._urltestSelected.push(config.url);
+      }
+    }
+
+    // Update counter
+    var counter = document.getElementById("urltest-counter-" + section_id);
+    if (counter) {
+      counter.textContent = _("Выбрано: ") + configList._urltestSelected.length;
+    }
+
+    // Update the urltest_proxy_links DynamicList field
+    updateUrltestProxyLinks(section_id, configList._urltestSelected);
+  };
+}
+
+// Update urltest_proxy_links DynamicList field with selected configs
+function updateUrltestProxyLinks(section_id, selectedUrls) {
+  var baseId = "cbid.podkop." + section_id + ".urltest_proxy_links";
+
+  // Find the DynamicList widget container
+  var dynlistWidget = document.querySelector(
+    '.cbi-dynlist input[name="' + baseId + '"]'
+  );
+
+  if (dynlistWidget) {
+    dynlistWidget = dynlistWidget.closest('.cbi-dynlist');
+  }
+
+  if (!dynlistWidget) {
+    // Try finding by ID
+    var widgetId = "widget." + baseId;
+    var node = document.getElementById(widgetId);
+    if (node) {
+      dynlistWidget = node.closest('.cbi-dynlist') || node.parentElement;
+    }
+  }
+
+  if (!dynlistWidget) {
+    console.warn("Could not find urltest_proxy_links for section:", section_id);
+    return;
+  }
+
+  // Find the text input used for adding items
+  var addInput = dynlistWidget.querySelector('input[type="text"]');
+
+  if (!addInput) {
+    console.warn("Could not find add input in DynamicList");
+    return;
+  }
+
+  // Step 1: Remove ALL existing items from DOM
+  // Remove .item divs
+  var existingItems = dynlistWidget.querySelectorAll('.item');
+  existingItems.forEach(function(item) {
+    item.parentNode.removeChild(item);
+  });
+
+  // Remove hidden inputs with our name
+  var existingInputs = document.querySelectorAll('input[type="hidden"][name="' + baseId + '"]');
+  existingInputs.forEach(function(input) {
+    input.parentNode.removeChild(input);
+  });
+
+  // Also remove any inputs inside dynlist with our name
+  var dynlistInputs = dynlistWidget.querySelectorAll('input[name="' + baseId + '"]');
+  dynlistInputs.forEach(function(input) {
+    if (input !== addInput && input.type !== 'text') {
+      input.parentNode.removeChild(input);
+    }
+  });
+
+  // Step 2: Add new items by simulating Enter key
+  function addItem(url) {
+    addInput.value = url;
+    addInput.dispatchEvent(new Event('input', { bubbles: true }));
+    addInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Simulate Enter keypress
+    var keydownEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      keyCode: 13,
+      which: 13,
+      bubbles: true,
+      cancelable: true
+    });
+    addInput.dispatchEvent(keydownEvent);
+
+    var keypressEvent = new KeyboardEvent('keypress', {
+      key: 'Enter',
+      code: 'Enter',
+      keyCode: 13,
+      which: 13,
+      bubbles: true,
+      cancelable: true
+    });
+    addInput.dispatchEvent(keypressEvent);
+  }
+
+  // Add items with delay
+  var delay = 100; // Start with small delay after clearing
+  selectedUrls.forEach(function(url, index) {
+    setTimeout(function() {
+      addItem(url);
+    }, delay);
+    delay += 100;
+  });
+
+  // Clear input after all items added
+  setTimeout(function() {
+    addInput.value = '';
+    // Trigger change to update form state
+    dynlistWidget.dispatchEvent(new Event('change', { bubbles: true }));
+  }, delay + 100);
+}
+
+// Click handler for Outbound mode
+function createOutboundClickHandler(config, configItem, configList) {
+  return function (e) {
+    e.stopPropagation();
+
+    var loadingText = createWarningMessage(_("Применение конфигурации..."));
+    configItem.appendChild(loadingText);
+
+    var xhrConfig = new XMLHttpRequest();
+    xhrConfig.open("POST", "/cgi-bin/podkop-xray-config", true);
+    xhrConfig.setRequestHeader("Content-Type", "text/plain");
+
+    xhrConfig.onreadystatechange = function () {
+      if (xhrConfig.readyState === 4) {
+        if (loadingText.parentNode) {
+          loadingText.parentNode.removeChild(loadingText);
         }
 
-        if (xhr.status === 200) {
+        if (xhrConfig.status === 200) {
           try {
-            const result = JSON.parse(xhr.responseText);
-            if (!result || !result.configs || result.configs.length === 0) {
-              const errorDiv = document.createElement("div");
-              errorDiv.style.cssText =
-                "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-              errorDiv.textContent = _("Конфигурации не найдены");
-              if (subscribeContainer && subscribeContainer.nextSibling) {
-                subscribeContainer.parentNode.insertBefore(
-                  errorDiv,
-                  subscribeContainer.nextSibling
-                );
-              } else if (subscribeContainer) {
-                subscribeContainer.parentNode.appendChild(errorDiv);
-              }
-              setTimeout(function () {
-                if (errorDiv.parentNode) {
-                  errorDiv.parentNode.removeChild(errorDiv);
-                }
-              }, 3000);
-              return;
-            }
+            JSON.parse(xhrConfig.responseText);
 
-            const configs = result.configs;
-            if (!subscribeContainer) return;
-
-            const configListContainer = document.createElement("div");
-            configListContainer.id = "podkop-subscribe-config-list";
-            configListContainer.className = "cbi-value";
-
-            // Проверяем connection_type - показываем только если "proxy"
-            let shouldShow = false;
-            try {
-              let connectionTypeSelect = document.querySelector(
-                'select[id*="connection_type"]'
-              );
-              if (!connectionTypeSelect) {
-                connectionTypeSelect = document.querySelector(
-                  'select[name*="connection_type"]'
-                );
-              }
-              if (connectionTypeSelect && connectionTypeSelect.value === "proxy") {
-                shouldShow = true;
-              }
-            } catch (e) {
-              shouldShow = false;
-            }
-
-            configListContainer.style.cssText =
-              "margin-top: 15px; margin-bottom: 15px;" +
-              (shouldShow ? "" : "display: none;");
-
-            const labelContainer = document.createElement("label");
-            labelContainer.className = "cbi-value-title";
-            labelContainer.style.cssText =
-              "width: 200px; padding-right: 10px; display: inline-block; vertical-align: top;";
-            labelContainer.textContent = _("Доступные конфигурации");
-            configListContainer.appendChild(labelContainer);
-
-            const contentContainer = document.createElement("div");
-            contentContainer.className = "cbi-value-field";
-            contentContainer.style.cssText =
-              "display: inline-block; width: calc(100% - 220px);";
-
-            const title = document.createElement("div");
-            title.style.cssText =
-              "margin-bottom: 10px; font-size: 14px; color: #666;";
-            title.textContent =
-              _("Нажмите на конфигурацию для выбора") +
-              " (" +
-              configs.length +
-              ")";
-            contentContainer.appendChild(title);
-
-            const configList = document.createElement("div");
-            configList.style.cssText =
-              "max-height: 300px; overflow-y: auto; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;";
-
-            configs.forEach(function (config, index) {
-              const configItem = document.createElement("div");
-              configItem.style.cssText =
-                "margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; transition: background 0.2s; background: white;";
-              configItem.onmouseover = function () {
-                this.style.background = "#e8f4f8";
-                this.style.borderColor = "#0078d4";
-              };
-              configItem.onmouseout = function () {
-                this.style.background = "white";
-                this.style.borderColor = "#ccc";
-              };
-
-              const configTitle = document.createElement("div");
-              configTitle.style.cssText =
-                "font-weight: bold; margin-bottom: 3px; font-size: 13px;";
-              configTitle.textContent =
-                config.title ||
-                _("Конфигурация") + " " + (index + 1);
-              configItem.appendChild(configTitle);
-
-              configItem.onclick = function (e) {
-                e.stopPropagation();
-
-                let proxyTextarea = document.getElementById(
-                  "widget.cbid.podkop.main.proxy_string"
-                );
-                if (!proxyTextarea) {
-                  proxyTextarea = document.querySelector(
-                    'textarea[id*="proxy_string"]'
-                  );
-                }
-                if (!proxyTextarea) {
-                  proxyTextarea = document.getElementById(
-                    `widget.cbid.podkop.${section_id}.proxy_string`
-                  );
-                }
-                if (!proxyTextarea) {
-                  proxyTextarea = document.getElementById(
-                    "cbid.podkop.main.proxy_string"
-                  );
-                }
-                if (!proxyTextarea) {
-                  proxyTextarea = document.getElementById(
-                    `cbid.podkop.${section_id}.proxy_string`
-                  );
-                }
-
-                if (proxyTextarea) {
-                  proxyTextarea.value = config.url;
-                  if (proxyTextarea.dispatchEvent) {
-                    proxyTextarea.dispatchEvent(
-                      new Event("change", {
-                        bubbles: true,
-                      })
-                    );
-                    proxyTextarea.dispatchEvent(
-                      new Event("input", {
-                        bubbles: true,
-                      })
-                    );
-                  }
-                }
-
-                const allItems =
-                  configList.querySelectorAll(
-                    'div[style*="cursor: pointer"]'
-                  );
-                allItems.forEach(function (item) {
-                  item.style.background = "white";
-                  item.style.borderColor = "#ccc";
-                });
-                configItem.style.background = "#d4edda";
-                configItem.style.borderColor = "#28a745";
-
-                const successDiv = document.createElement("div");
-                successDiv.style.cssText =
-                  "margin-top: 5px; padding: 5px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; color: #155724; font-size: 12px;";
-                successDiv.textContent = _("Конфигурация выбрана");
-                configItem.appendChild(successDiv);
-                setTimeout(function () {
-                  if (successDiv.parentNode) {
-                    successDiv.parentNode.removeChild(successDiv);
-                  }
-                }, 2000);
-              };
-
-              configList.appendChild(configItem);
+            // Reset all items
+            var allItems = configList.querySelectorAll(".podkop-subscribe-item");
+            allItems.forEach(function (item) {
+              item.classList.remove("selected");
             });
 
-            contentContainer.appendChild(configList);
-            configListContainer.appendChild(contentContainer);
+            configItem.classList.add("selected");
 
-            if (subscribeContainer.nextSibling) {
-              subscribeContainer.parentNode.insertBefore(
-                configListContainer,
-                subscribeContainer.nextSibling
-              );
-            } else {
-              subscribeContainer.parentNode.appendChild(
-                configListContainer
-              );
-            }
-
-            // Убеждаемся, что обработчики установлены
+            var successDiv = createSuccessMessage(
+              _("Конфигурация применена к Xray и служба перезапущена")
+            );
+            configItem.appendChild(successDiv);
             setTimeout(function () {
-              initConfigListHandlers();
-            }, 100);
-
-            // Сохраняем URL
-            const saveUrlXhr = new XMLHttpRequest();
-            saveUrlXhr.open(
-              "POST",
-              "/cgi-bin/podkop-subscribe-url",
+              if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+              }
+            }, 3000);
+          } catch (err) {
+            var errorDiv = createErrorMessage(
+              _("Ошибка при применении конфигурации: ") + err.message,
               true
             );
-            saveUrlXhr.setRequestHeader(
-              "Content-Type",
-              "text/plain"
-            );
-            saveUrlXhr.send(subscribeUrl);
-          } catch (e) {
-            const errorDiv = document.createElement("div");
-            errorDiv.style.cssText =
-              "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-            errorDiv.textContent =
-              _("Ошибка при разборе ответа: ") + e.message;
-            if (subscribeContainer && subscribeContainer.nextSibling) {
-              subscribeContainer.parentNode.insertBefore(
-                errorDiv,
-                subscribeContainer.nextSibling
-              );
-            } else if (subscribeContainer) {
-              subscribeContainer.parentNode.appendChild(errorDiv);
-            }
+            configItem.appendChild(errorDiv);
             setTimeout(function () {
               if (errorDiv.parentNode) {
                 errorDiv.parentNode.removeChild(errorDiv);
@@ -487,20 +720,11 @@ function enhanceSectionWithSubscribe(section) {
             }, 5000);
           }
         } else {
-          const errorDiv = document.createElement("div");
-          errorDiv.style.cssText =
-            "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-          errorDiv.textContent =
-            _("Ошибка при получении конфигураций: HTTP ") +
-            xhr.status;
-          if (subscribeContainer && subscribeContainer.nextSibling) {
-            subscribeContainer.parentNode.insertBefore(
-              errorDiv,
-              subscribeContainer.nextSibling
-            );
-          } else if (subscribeContainer) {
-            subscribeContainer.parentNode.appendChild(errorDiv);
-          }
+          var errorDiv = createErrorMessage(
+            _("Ошибка при применении конфигурации: HTTP ") + xhrConfig.status,
+            true
+          );
+          configItem.appendChild(errorDiv);
           setTimeout(function () {
             if (errorDiv.parentNode) {
               errorDiv.parentNode.removeChild(errorDiv);
@@ -510,24 +734,15 @@ function enhanceSectionWithSubscribe(section) {
       }
     };
 
-    xhr.onerror = function () {
-      if (loadingIndicator && loadingIndicator.parentNode) {
-        loadingIndicator.parentNode.removeChild(loadingIndicator);
+    xhrConfig.onerror = function () {
+      if (loadingText.parentNode) {
+        loadingText.parentNode.removeChild(loadingText);
       }
-      const errorDiv = document.createElement("div");
-      errorDiv.style.cssText =
-        "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-      errorDiv.textContent = _(
-        "Ошибка сети при получении конфигураций"
+      var errorDiv = createErrorMessage(
+        _("Ошибка сети при применении конфигурации"),
+        true
       );
-      if (subscribeContainer && subscribeContainer.nextSibling) {
-        subscribeContainer.parentNode.insertBefore(
-          errorDiv,
-          subscribeContainer.nextSibling
-        );
-      } else if (subscribeContainer) {
-        subscribeContainer.parentNode.appendChild(errorDiv);
-      }
+      configItem.appendChild(errorDiv);
       setTimeout(function () {
         if (errorDiv.parentNode) {
           errorDiv.parentNode.removeChild(errorDiv);
@@ -535,74 +750,278 @@ function enhanceSectionWithSubscribe(section) {
       }, 5000);
     };
 
-    xhr.send(subscribeUrl);
-    return false;
+    xhrConfig.send(config.url);
+  };
+}
+
+// Fetch configs handler
+function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, section_id, isUrltest) {
+  // Remove old list for this section
+  var existingList = document.getElementById(listId);
+  if (existingList && existingList.parentNode) {
+    existingList.parentNode.removeChild(existingList);
+  }
+
+  // Remove old loading indicator for this section
+  var loadingSuffix = isOutbound ? "-outbound" : (isUrltest ? "-urltest" : "");
+  var loadingId = "podkop-subscribe-loading-" + section_id + loadingSuffix;
+  var existingLoading = document.getElementById(loadingId);
+  if (existingLoading && existingLoading.parentNode) {
+    existingLoading.parentNode.removeChild(existingLoading);
+  }
+
+  // Show loading
+  var loadingIndicator = null;
+  if (subscribeContainer) {
+    loadingIndicator = createLoadingIndicator(loadingId);
+
+    if (subscribeContainer.nextSibling) {
+      subscribeContainer.parentNode.insertBefore(
+        loadingIndicator,
+        subscribeContainer.nextSibling
+      );
+    } else {
+      subscribeContainer.parentNode.appendChild(loadingIndicator);
+    }
+  }
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/cgi-bin/podkop-subscribe", true);
+  xhr.setRequestHeader("Content-Type", "text/plain");
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      if (loadingIndicator && loadingIndicator.parentNode) {
+        loadingIndicator.parentNode.removeChild(loadingIndicator);
+      }
+
+      if (xhr.status === 200) {
+        try {
+          var result = JSON.parse(xhr.responseText);
+
+          if (result.error) {
+            showTemporaryError(subscribeContainer, result.error);
+            return;
+          }
+
+          if (!result || !result.configs || result.configs.length === 0) {
+            showTemporaryError(subscribeContainer, _("Конфигурации не найдены"));
+            return;
+          }
+
+          var configs = result.configs;
+          if (!subscribeContainer) return;
+
+          var configListContainer = createConfigListUI(
+            configs,
+            listId,
+            isOutbound,
+            section_id,
+            isUrltest
+          );
+
+          if (subscribeContainer.nextSibling) {
+            subscribeContainer.parentNode.insertBefore(
+              configListContainer,
+              subscribeContainer.nextSibling
+            );
+          } else {
+            subscribeContainer.parentNode.appendChild(configListContainer);
+          }
+
+          setTimeout(function () {
+            initConfigListHandlers();
+          }, 100);
+        } catch (e) {
+          showTemporaryError(
+            subscribeContainer,
+            _("Ошибка при разборе ответа: ") + e.message
+          );
+        }
+      } else {
+        showTemporaryError(
+          subscribeContainer,
+          _("Ошибка при получении конфигураций: HTTP ") + xhr.status
+        );
+      }
+    }
   };
 
-  // Аналогичные поля/кнопки для proxy_config_type = "outbound"
-  o = section.option(
+  xhr.onerror = function () {
+    if (loadingIndicator && loadingIndicator.parentNode) {
+      loadingIndicator.parentNode.removeChild(loadingIndicator);
+    }
+    showTemporaryError(
+      subscribeContainer,
+      _("Ошибка сети при получении конфигураций")
+    );
+  };
+
+  xhr.send(subscribeUrl);
+}
+
+// Show temporary error
+function showTemporaryError(container, message) {
+  var errorDiv = createErrorMessage(message, false);
+  if (container && container.nextSibling) {
+    container.parentNode.insertBefore(errorDiv, container.nextSibling);
+  } else if (container) {
+    container.parentNode.appendChild(errorDiv);
+  }
+  setTimeout(function () {
+    if (errorDiv.parentNode) {
+      errorDiv.parentNode.removeChild(errorDiv);
+    }
+  }, 5000);
+}
+
+function enhanceSectionWithSubscribe(section) {
+  // Inject CSS styles
+  injectSubscribeStyles();
+
+  // Initialize handlers after DOM load
+  setTimeout(function () {
+    initConfigListHandlers();
+  }, 500);
+
+  // Subscribe URL for proxy_config_type = "url" and "urltest"
+  var o = section.option(
     form.Value,
-    "subscribe_url_outbound",
+    "subscribe_url",
     _("Subscribe URL"),
-    _("Введите Subscribe URL для получения конфигураций vless")
+    _("Введите Subscribe URL для получения конфигураций")
   );
-  o.depends("proxy_config_type", "outbound");
+  o.depends("proxy_config_type", "url");
+  o.depends("proxy_config_type", "urltest");
   o.placeholder = "https://example.com/subscribe";
   o.rmempty = true;
 
-  o.load = function (section_id) {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "/cgi-bin/podkop-subscribe-url", true);
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        try {
-          const result = JSON.parse(xhr.responseText);
-          if (result && result.url && result.url.length > 0) {
-            setTimeout(function () {
-              let subscribeInput =
-                document.getElementById(
-                  `widget.cbid.podkop.${section_id}.subscribe_url_outbound`
-                ) ||
-                document.getElementById(
-                  `cbid.podkop.${section_id}.subscribe_url_outbound`
-                ) ||
-                document.querySelector(
-                  'input[id*="subscribe_url_outbound"]'
-                );
-              if (subscribeInput) {
-                subscribeInput.value = result.url;
-                if (subscribeInput.dispatchEvent) {
-                  subscribeInput.dispatchEvent(
-                    new Event("change", { bubbles: true })
-                  );
-                }
-              }
-            }, 100);
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-    };
-    xhr.send();
-  };
-
+  // Validation
   o.validate = function (section_id, value) {
     if (!value || value.length === 0) {
       return true;
     }
-    const validation = main.validateUrl(value);
+    var validation = main.validateUrl(value);
     if (validation.valid) {
       return true;
     }
     return validation.message;
   };
 
+  // Fetch button for URL mode
+  o = section.option(
+    form.Button,
+    "subscribe_fetch",
+    _("Получить конфигурации"),
+    _("Получить конфигурации из Subscribe URL")
+  );
+  o.depends("proxy_config_type", "url");
+  o.inputtitle = _("Получить");
+  o.inputstyle = "add";
+
+  o.onclick = function (ev, section_id) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+
+    var subscribeUrl = getSubscribeUrl(ev, section_id, "subscribe_url");
+
+    if (!subscribeUrl || subscribeUrl.length === 0) {
+      ui.addNotification(null, E("p", {}, _("Пожалуйста, введите Subscribe URL")));
+      return false;
+    }
+
+    var subscribeInput = findSubscribeInput(ev, section_id, "subscribe_url");
+    var subscribeContainer = null;
+    if (subscribeInput) {
+      subscribeContainer =
+        subscribeInput.closest(".cbi-value") ||
+        subscribeInput.closest(".cbi-section") ||
+        subscribeInput.parentElement;
+    }
+
+    fetchConfigs(
+      subscribeUrl,
+      subscribeContainer,
+      "podkop-subscribe-config-list-" + section_id,
+      false,
+      section_id,
+      false
+    );
+
+    return false;
+  };
+
+  // Fetch button for URLTest mode
+  o = section.option(
+    form.Button,
+    "subscribe_fetch_urltest",
+    _("Получить конфигурации"),
+    _("Получить конфигурации из Subscribe URL для выбора в URLTest")
+  );
+  o.depends("proxy_config_type", "urltest");
+  o.inputtitle = _("Получить");
+  o.inputstyle = "add";
+
+  o.onclick = function (ev, section_id) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+
+    var subscribeUrl = getSubscribeUrl(ev, section_id, "subscribe_url");
+
+    if (!subscribeUrl || subscribeUrl.length === 0) {
+      ui.addNotification(null, E("p", {}, _("Пожалуйста, введите Subscribe URL")));
+      return false;
+    }
+
+    var subscribeInput = findSubscribeInput(ev, section_id, "subscribe_url");
+    var subscribeContainer = null;
+    if (subscribeInput) {
+      subscribeContainer =
+        subscribeInput.closest(".cbi-value") ||
+        subscribeInput.closest(".cbi-section") ||
+        subscribeInput.parentElement;
+    }
+
+    fetchConfigs(
+      subscribeUrl,
+      subscribeContainer,
+      "podkop-subscribe-config-list-urltest-" + section_id,
+      false,
+      section_id,
+      true
+    );
+
+    return false;
+  };
+
+  // Subscribe URL for proxy_config_type = "outbound"
+  o = section.option(
+    form.Value,
+    "subscribe_url_outbound",
+    _("Subscribe URL"),
+    _("Введите Subscribe URL для получения конфигураций")
+  );
+  o.depends("proxy_config_type", "outbound");
+  o.placeholder = "https://example.com/subscribe";
+  o.rmempty = true;
+
+  o.validate = function (section_id, value) {
+    if (!value || value.length === 0) {
+      return true;
+    }
+    var validation = main.validateUrl(value);
+    if (validation.valid) {
+      return true;
+    }
+    return validation.message;
+  };
+
+  // Fetch button for Outbound mode
   o = section.option(
     form.Button,
     "subscribe_fetch_outbound",
     _("Получить конфигурации"),
-    _("Получить конфигурации vless из Subscribe URL")
+    _("Получить конфигурации из Subscribe URL")
   );
   o.depends("proxy_config_type", "outbound");
   o.inputtitle = _("Получить");
@@ -612,36 +1031,7 @@ function enhanceSectionWithSubscribe(section) {
     if (ev && ev.preventDefault) ev.preventDefault();
     if (ev && ev.stopPropagation) ev.stopPropagation();
 
-    let subscribeUrl = "";
-    try {
-      const button = ev && ev.target ? ev.target : null;
-      if (button) {
-        const parentSection = button.closest(".cbi-section");
-        if (parentSection) {
-          const input = parentSection.querySelector(
-            'input[placeholder*="Subscribe"], input[id*="subscribe_url_outbound"]'
-          );
-          if (input) {
-            subscribeUrl = input.value || "";
-          }
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    if (!subscribeUrl) {
-      try {
-        const inputById = document.querySelector(
-          `#widget\\.cbid\\.podkop\\.${section_id}\\.subscribe_url_outbound`
-        );
-        if (inputById) {
-          subscribeUrl = inputById.value || "";
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
+    var subscribeUrl = getSubscribeUrl(ev, section_id, "subscribe_url_outbound");
 
     if (!subscribeUrl || subscribeUrl.length === 0) {
       ui.addNotification(
@@ -651,37 +1041,8 @@ function enhanceSectionWithSubscribe(section) {
       return false;
     }
 
-    let subscribeInput = null;
-    try {
-      const button = ev && ev.target ? ev.target : null;
-      if (button) {
-        const parentSection = button.closest(".cbi-section");
-        if (parentSection) {
-          subscribeInput = parentSection.querySelector(
-            'input[placeholder*="Subscribe"], input[id*="subscribe_url_outbound"]'
-          );
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    if (!subscribeInput) {
-      try {
-        subscribeInput =
-          document.querySelector(
-            `#widget\\.cbid\\.podkop\\.${section_id}\\.subscribe_url_outbound`
-          ) ||
-          document.querySelector(
-            `#cbid\\.podkop\\.${section_id}\\.subscribe_url_outbound`
-          ) ||
-          document.querySelector('input[id*="subscribe_url_outbound"]');
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    let subscribeContainer = null;
+    var subscribeInput = findSubscribeInput(ev, section_id, "subscribe_url_outbound");
+    var subscribeContainer = null;
     if (subscribeInput) {
       subscribeContainer =
         subscribeInput.closest(".cbi-value") ||
@@ -689,395 +1050,21 @@ function enhanceSectionWithSubscribe(section) {
         subscribeInput.parentElement;
     }
 
-    const existingList = document.getElementById(
-      "podkop-subscribe-config-list-outbound"
+    fetchConfigs(
+      subscribeUrl,
+      subscribeContainer,
+      "podkop-subscribe-config-list-outbound-" + section_id,
+      true,
+      section_id,
+      false
     );
-    if (existingList && existingList.parentNode) {
-      existingList.parentNode.removeChild(existingList);
-    }
 
-    let loadingIndicator = null;
-    if (subscribeContainer) {
-      loadingIndicator = document.createElement("div");
-      loadingIndicator.id = "podkop-subscribe-loading-outbound";
-      loadingIndicator.className = "cbi-value";
-      loadingIndicator.style.cssText =
-        "margin-top: 10px; margin-bottom: 10px;";
-
-      const loadingLabel = document.createElement("label");
-      loadingLabel.className = "cbi-value-title";
-      loadingLabel.style.cssText =
-        "width: 200px; padding-right: 10px; display: inline-block; vertical-align: top;";
-      loadingLabel.textContent = "";
-      loadingIndicator.appendChild(loadingLabel);
-
-      const loadingContent = document.createElement("div");
-      loadingContent.className = "cbi-value-field";
-      loadingContent.style.cssText =
-        "display: inline-block; width: calc(100% - 220px); padding: 10px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1976d2;";
-      loadingContent.textContent = _("Получение конфигураций...");
-      loadingIndicator.appendChild(loadingContent);
-
-      if (subscribeContainer.nextSibling) {
-        subscribeContainer.parentNode.insertBefore(
-          loadingIndicator,
-          subscribeContainer.nextSibling
-        );
-      } else {
-        subscribeContainer.parentNode.appendChild(loadingIndicator);
-      }
-    }
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/cgi-bin/podkop-subscribe", true);
-    xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4) {
-        if (loadingIndicator && loadingIndicator.parentNode) {
-          loadingIndicator.parentNode.removeChild(loadingIndicator);
-        }
-
-        if (xhr.status === 200) {
-          try {
-            const result = JSON.parse(xhr.responseText);
-            if (!result || !result.configs || result.configs.length === 0) {
-              const errorDiv = document.createElement("div");
-              errorDiv.style.cssText =
-                "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-              errorDiv.textContent = _("Конфигурации не найдены");
-              if (subscribeContainer && subscribeContainer.nextSibling) {
-                subscribeContainer.parentNode.insertBefore(
-                  errorDiv,
-                  subscribeContainer.nextSibling
-                );
-              } else if (subscribeContainer) {
-                subscribeContainer.parentNode.appendChild(errorDiv);
-              }
-              setTimeout(function () {
-                if (errorDiv.parentNode) {
-                  errorDiv.parentNode.removeChild(errorDiv);
-                }
-              }, 3000);
-              return;
-            }
-
-            const configs = result.configs;
-            if (!subscribeContainer) return;
-
-            const configListContainer = document.createElement("div");
-            configListContainer.id =
-              "podkop-subscribe-config-list-outbound";
-            configListContainer.className = "cbi-value";
-
-            // Проверяем connection_type - показываем только если "proxy"
-            let shouldShowOutbound = false;
-            try {
-              let connectionTypeSelect = document.querySelector(
-                'select[id*="connection_type"]'
-              );
-              if (!connectionTypeSelect) {
-                connectionTypeSelect = document.querySelector(
-                  'select[name*="connection_type"]'
-                );
-              }
-              if (connectionTypeSelect && connectionTypeSelect.value === "proxy") {
-                shouldShowOutbound = true;
-              }
-            } catch (e) {
-              shouldShowOutbound = false;
-            }
-
-            configListContainer.style.cssText =
-              "margin-top: 15px; margin-bottom: 15px;" +
-              (shouldShowOutbound ? "" : "display: none;");
-
-            const labelContainer = document.createElement("label");
-            labelContainer.className = "cbi-value-title";
-            labelContainer.style.cssText =
-              "width: 200px; padding-right: 10px; display: inline-block; vertical-align: top;";
-            labelContainer.textContent = _("Доступные конфигурации");
-            configListContainer.appendChild(labelContainer);
-
-            const contentContainer = document.createElement("div");
-            contentContainer.className = "cbi-value-field";
-            contentContainer.style.cssText =
-              "display: inline-block; width: calc(100% - 220px);";
-
-            const title = document.createElement("div");
-            title.style.cssText =
-              "margin-bottom: 10px; font-size: 14px; color: #666;";
-            title.textContent =
-              _("Нажмите на конфигурацию для применения в Xray") +
-              " (" +
-              configs.length +
-              ")";
-            contentContainer.appendChild(title);
-
-            const configList = document.createElement("div");
-            configList.style.cssText =
-              "max-height: 300px; overflow-y: auto; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;";
-
-            configs.forEach(function (config, index) {
-              const configItem = document.createElement("div");
-              configItem.style.cssText =
-                "margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; transition: background 0.2s; background: white;";
-              configItem.onmouseover = function () {
-                this.style.background = "#e8f4f8";
-                this.style.borderColor = "#0078d4";
-              };
-              configItem.onmouseout = function () {
-                if (!this.classList.contains("selected")) {
-                  this.style.background = "white";
-                  this.style.borderColor = "#ccc";
-                }
-              };
-
-              const configTitle = document.createElement("div");
-              configTitle.style.cssText =
-                "font-weight: bold; margin-bottom: 3px; font-size: 13px;";
-              configTitle.textContent =
-                config.title ||
-                _("Конфигурация") + " " + (index + 1);
-              configItem.appendChild(configTitle);
-
-              configItem.onclick = function (e) {
-                e.stopPropagation();
-
-                const loadingText = document.createElement("div");
-                loadingText.style.cssText =
-                  "margin-top: 5px; padding: 5px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; color: #856404; font-size: 12px;";
-                loadingText.textContent = _(
-                  "Применение конфигурации..."
-                );
-                configItem.appendChild(loadingText);
-
-                const xhrConfig = new XMLHttpRequest();
-                xhrConfig.open(
-                  "POST",
-                  "/cgi-bin/podkop-xray-config",
-                  true
-                );
-                xhrConfig.setRequestHeader(
-                  "Content-Type",
-                  "text/plain"
-                );
-                xhrConfig.onreadystatechange = function () {
-                  if (xhrConfig.readyState === 4) {
-                    if (loadingText.parentNode) {
-                      loadingText.parentNode.removeChild(
-                        loadingText
-                      );
-                    }
-
-                    if (xhrConfig.status === 200) {
-                      try {
-                        JSON.parse(xhrConfig.responseText);
-
-                        const allItems =
-                          configList.querySelectorAll(
-                            'div[style*="cursor: pointer"]'
-                          );
-                        allItems.forEach(function (item) {
-                          item.classList.remove("selected");
-                          item.style.background = "white";
-                          item.style.borderColor = "#ccc";
-                        });
-
-                        configItem.classList.add("selected");
-                        configItem.style.background =
-                          "#d4edda";
-                        configItem.style.borderColor =
-                          "#28a745";
-
-                        const successDiv =
-                          document.createElement("div");
-                        successDiv.style.cssText =
-                          "margin-top: 5px; padding: 5px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; color: #155724; font-size: 12px;";
-                        successDiv.textContent = _(
-                          "Конфигурация применена к Xray и служба перезапущена"
-                        );
-                        configItem.appendChild(successDiv);
-                        setTimeout(function () {
-                          if (successDiv.parentNode) {
-                            successDiv.parentNode.removeChild(
-                              successDiv
-                            );
-                          }
-                        }, 3000);
-                      } catch (e) {
-                        const errorDiv =
-                          document.createElement("div");
-                        errorDiv.style.cssText =
-                          "margin-top: 5px; padding: 5px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828; font-size: 12px;";
-                        errorDiv.textContent =
-                          _(
-                            "Ошибка при применении конфигурации: "
-                          ) + e.message;
-                        configItem.appendChild(errorDiv);
-                        setTimeout(function () {
-                          if (errorDiv.parentNode) {
-                            errorDiv.parentNode.removeChild(
-                              errorDiv
-                            );
-                          }
-                        }, 5000);
-                      }
-                    } else {
-                      const errorDiv =
-                        document.createElement("div");
-                      errorDiv.style.cssText =
-                        "margin-top: 5px; padding: 5px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828; font-size: 12px;";
-                      errorDiv.textContent =
-                        _(
-                          "Ошибка при применении конфигурации: HTTP "
-                        ) + xhrConfig.status;
-                      configItem.appendChild(errorDiv);
-                      setTimeout(function () {
-                        if (errorDiv.parentNode) {
-                          errorDiv.parentNode.removeChild(
-                            errorDiv
-                          );
-                        }
-                      }, 5000);
-                    }
-                  }
-                };
-                xhrConfig.onerror = function () {
-                  if (loadingText.parentNode) {
-                    loadingText.parentNode.removeChild(
-                      loadingText
-                    );
-                  }
-                  const errorDiv =
-                    document.createElement("div");
-                  errorDiv.style.cssText =
-                    "margin-top: 5px; padding: 5px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828; font-size: 12px;";
-                  errorDiv.textContent = _(
-                    "Ошибка сети при применении конфигурации"
-                  );
-                  configItem.appendChild(errorDiv);
-                  setTimeout(function () {
-                    if (errorDiv.parentNode) {
-                      errorDiv.parentNode.removeChild(
-                        errorDiv
-                      );
-                    }
-                  }, 5000);
-                };
-                xhrConfig.send(config.url);
-              };
-
-              configList.appendChild(configItem);
-            });
-
-            contentContainer.appendChild(configList);
-            configListContainer.appendChild(contentContainer);
-
-            if (subscribeContainer.nextSibling) {
-              subscribeContainer.parentNode.insertBefore(
-                configListContainer,
-                subscribeContainer.nextSibling
-              );
-            } else {
-              subscribeContainer.parentNode.appendChild(
-                configListContainer
-              );
-            }
-
-            // Убеждаемся, что обработчики установлены
-            setTimeout(function () {
-              initConfigListHandlers();
-            }, 100);
-
-            const saveUrlXhr = new XMLHttpRequest();
-            saveUrlXhr.open(
-              "POST",
-              "/cgi-bin/podkop-subscribe-url",
-              true
-            );
-            saveUrlXhr.setRequestHeader(
-              "Content-Type",
-              "text/plain"
-            );
-            saveUrlXhr.send(subscribeUrl);
-          } catch (e) {
-            const errorDiv = document.createElement("div");
-            errorDiv.style.cssText =
-              "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-            errorDiv.textContent =
-              _("Ошибка при разборе ответа: ") + e.message;
-            if (subscribeContainer && subscribeContainer.nextSibling) {
-              subscribeContainer.parentNode.insertBefore(
-                errorDiv,
-                subscribeContainer.nextSibling
-              );
-            } else if (subscribeContainer) {
-              subscribeContainer.parentNode.appendChild(errorDiv);
-            }
-            setTimeout(function () {
-              if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-              }
-            }, 5000);
-          }
-        } else {
-          const errorDiv = document.createElement("div");
-          errorDiv.style.cssText =
-            "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-          errorDiv.textContent =
-            _("Ошибка при получении конфигураций: HTTP ") +
-            xhr.status;
-          if (subscribeContainer && subscribeContainer.nextSibling) {
-            subscribeContainer.parentNode.insertBefore(
-              errorDiv,
-              subscribeContainer.nextSibling
-            );
-          } else if (subscribeContainer) {
-            subscribeContainer.parentNode.appendChild(errorDiv);
-          }
-          setTimeout(function () {
-            if (errorDiv.parentNode) {
-              errorDiv.parentNode.removeChild(errorDiv);
-            }
-          }, 5000);
-        }
-      }
-    };
-
-    xhr.onerror = function () {
-      if (loadingIndicator && loadingIndicator.parentNode) {
-        loadingIndicator.parentNode.removeChild(loadingIndicator);
-      }
-      const errorDiv = document.createElement("div");
-      errorDiv.style.cssText =
-        "margin-top: 10px; padding: 10px; background: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828;";
-      errorDiv.textContent = _(
-        "Ошибка сети при получении конфигураций"
-      );
-      if (subscribeContainer && subscribeContainer.nextSibling) {
-        subscribeContainer.parentNode.insertBefore(
-          errorDiv,
-          subscribeContainer.nextSibling
-        );
-      } else if (subscribeContainer) {
-        subscribeContainer.parentNode.appendChild(errorDiv);
-      }
-      setTimeout(function () {
-        if (errorDiv.parentNode) {
-          errorDiv.parentNode.removeChild(errorDiv);
-        }
-      }, 5000);
-    };
-
-    xhr.send(subscribeUrl);
     return false;
   };
 }
 
-const EntryPoint = {
-  enhanceSectionWithSubscribe,
+var EntryPoint = {
+  enhanceSectionWithSubscribe: enhanceSectionWithSubscribe,
 };
 
 return baseclass.extend(EntryPoint);
-
-// return {enhanceSectionWithSubscribe}

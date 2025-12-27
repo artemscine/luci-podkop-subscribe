@@ -2,17 +2,32 @@
 
 ![luci-podkop-subscribe](img.png)
 
-Расширение LuCI для Podkop, добавляющее функциональность Subscribe URL для получения и управления конфигурациями прокси VLESS.
+Расширение LuCI для Podkop, добавляющее функциональность Subscribe URL для получения и управления конфигурациями прокси.
+
+**Поддерживаемые протоколы:** VLESS, Shadowsocks (SS), Trojan, Hysteria2 (hy2)
+
+## Быстрая установка
+
+```bash
+sh <(wget -O - https://raw.githubusercontent.com/artemscine/luci-podkop-subscribe/main/install.sh)
+```
+
+## Удаление
+
+```bash
+sh <(wget -O - https://raw.githubusercontent.com/artemscine/luci-podkop-subscribe/main/uninstall.sh)
+```
 
 ## Описание
 
 Этот плагин расширяет интерфейс LuCI Podkop функцией Subscribe, которая позволяет пользователям:
 
-- Вводить Subscribe URL, содержащий конфигурации VLESS в формате base64
+- Вводить Subscribe URL, содержащий конфигурации в формате base64
 - Получать конфигурации из Subscribe URL одним нажатием кнопки
-- Просматривать доступные конфигурации в удобном списке
+- Просматривать доступные конфигурации в удобном списке с указанием протокола
 - Выбирать и применять конфигурации к настройкам прокси Podkop или напрямую к Xray
-- Автоматически сохранять и восстанавливать Subscribe URL при перезагрузке страницы
+- Автоматически сохранять Subscribe URL в конфигурации (сохраняется при Save & Apply)
+- Поддержка светлой и тёмной темы LuCI
 
 ---
 
@@ -273,23 +288,17 @@ logread | grep xray | tail -10
 - **OpenWrt**: 24.10.4
 - **Xray**: 25.1.30
 
-## Установка
-
-### Быстрая установка
-
-```bash
-sh <(wget -O - https://raw.githubusercontent.com/mr-Abdrahimov/luci-podkop-subscribe/main/install.sh)
-```
-
 ## Технические детали
 
 - **Frontend**: JavaScript расширение для представления секции Podkop
-- **Backend**: Три CGI скрипта:
-  - `/cgi-bin/podkop-subscribe`: Получает и парсит данные подписки из Subscribe URL
-  - `/cgi-bin/podkop-subscribe-url`: Управляет хранением Subscribe URL
+  - `subscribe.js` - основная логика UI с поддержкой тем
+  - `subscribe-loader.js` - автозагрузчик для DOM-инъекции (опционально)
+- **Backend**: CGI скрипты:
+  - `/cgi-bin/podkop-subscribe`: Получает и парсит данные подписки из Subscribe URL (поддержка vless, ss, trojan, hy2)
   - `/cgi-bin/podkop-xray-config`: Парсит VLESS URL и генерирует конфигурацию Xray (для режима Outbound Config)
-- **Хранилище**: Subscribe URL сохраняется в `/tmp/podkop_subscribe_url.txt`
+- **Хранилище**: Subscribe URL сохраняется в `/etc/config/podkop` через UCI (сохраняется при Save & Apply)
 - **Конфигурация Xray**: Сохраняется в `/etc/xray/config.json` при использовании режима Outbound Config
+- **Темизация**: Использует CSS переменные LuCI для автоматической адаптации к светлой/тёмной теме
 
 ## Важные примечания
 
@@ -304,10 +313,5 @@ sh <(wget -O - https://raw.githubusercontent.com/mr-Abdrahimov/luci-podkop-subsc
 
 GPL-2.0
 
-## Репозиторий
-
-https://github.com/mr-Abdrahimov/luci-podkop-subscribe
-
 ## Автор
-
 mr-Abdrahimov
