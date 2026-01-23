@@ -11,22 +11,23 @@ function createSectionContent(section) {
     form.ListValue,
     "connection_type",
     _("Connection Type"),
-    _("Select between VPN and Proxy connection methods for traffic routing"),
+    _("Select between VPN and Proxy connection methods for traffic routing")
   );
   o.value("proxy", "Proxy");
   o.value("vpn", "VPN");
   o.value("block", "Block");
+  o.value("exclusion", "Exclusion");
 
   o = section.option(
     form.ListValue,
     "proxy_config_type",
     _("Configuration Type"),
-    _("Select how to configure the proxy"),
+    _("Select how to configure the proxy")
   );
-
   o.value("url", _("Connection URL"));
-  o.value("outbound", _("Outbound Config"));
+  o.value("selector", _("Selector"));
   o.value("urltest", _("URLTest"));
+  o.value("outbound", _("Outbound Config"));
   o.default = "url";
   o.depends("connection_type", "proxy");
 
@@ -34,7 +35,7 @@ function createSectionContent(section) {
     form.TextValue,
     "proxy_string",
     _("Proxy Configuration URL"),
-    "",
+    _("vless://, ss://, trojan://, socks4/5://, hy2/hysteria2:// links")
   );
   o.depends("proxy_config_type", "url");
   o.rows = 5;
@@ -44,7 +45,6 @@ function createSectionContent(section) {
   o.textarea = true;
   o.rmempty = false;
   o.sectionDescriptions = new Map();
-  o.placeholder = "vless://uuid@server:port?type=tcp&security=tls#main";
   o.validate = function (section_id, value) {
     // Optional
     if (!value || value.length === 0) {
@@ -64,7 +64,7 @@ function createSectionContent(section) {
     form.TextValue,
     "outbound_json",
     _("Outbound Configuration"),
-    _("Enter complete outbound configuration in JSON format"),
+    _("Enter complete outbound configuration in JSON format")
   );
   o.depends("proxy_config_type", "outbound");
   o.rows = 10;
@@ -89,11 +89,34 @@ function createSectionContent(section) {
 
   o = section.option(
     form.DynamicList,
+    "selector_proxy_links",
+    _("Selector Proxy Links"),
+    _("vless://, ss://, trojan://, socks4/5://, hy2/hysteria2:// links")
+  );
+  o.depends("proxy_config_type", "selector");
+  o.rmempty = false;
+  o.validate = function (section_id, value) {
+    // Optional
+    if (!value || value.length === 0) {
+      return true;
+    }
+
+    const validation = main.validateProxyUrl(value);
+
+    if (validation.valid) {
+      return true;
+    }
+
+    return validation.message;
+  };
+
+  o = section.option(
+    form.DynamicList,
     "urltest_proxy_links",
     _("URLTest Proxy Links"),
+    _("vless://, ss://, trojan://, socks4/5://, hy2/hysteria2:// links")
   );
   o.depends("proxy_config_type", "urltest");
-  o.placeholder = "vless://, ss://, trojan://, socks4/5://, hy2/hysteria2:// links";
   o.rmempty = false;
   o.validate = function (section_id, value) {
     // Optional
@@ -178,7 +201,7 @@ function createSectionContent(section) {
     form.Flag,
     "enable_udp_over_tcp",
     _("UDP over TCP"),
-    _("Applicable for SOCKS and Shadowsocks proxy"),
+    _("Applicable for SOCKS and Shadowsocks proxy")
   );
   o.default = "0";
   o.depends("connection_type", "proxy");
@@ -188,7 +211,7 @@ function createSectionContent(section) {
     widgets.DeviceSelect,
     "interface",
     _("Network Interface"),
-    _("Select network interface for VPN connection"),
+    _("Select network interface for VPN connection")
   );
   o.depends("connection_type", "vpn");
   o.noaliases = true;
@@ -234,7 +257,7 @@ function createSectionContent(section) {
     form.Flag,
     "domain_resolver_enabled",
     _("Domain Resolver"),
-    _("Enable built-in DNS resolver for domains handled by this section"),
+    _("Enable built-in DNS resolver for domains handled by this section")
   );
   o.default = "0";
   o.rmempty = false;
@@ -244,7 +267,7 @@ function createSectionContent(section) {
     form.ListValue,
     "domain_resolver_dns_type",
     _("DNS Protocol Type"),
-    _("Select the DNS protocol type for the domain resolver"),
+    _("Select the DNS protocol type for the domain resolver")
   );
   o.value("doh", _("DNS over HTTPS (DoH)"));
   o.value("dot", _("DNS over TLS (DoT)"));
@@ -257,7 +280,7 @@ function createSectionContent(section) {
     form.Value,
     "domain_resolver_dns_server",
     _("DNS Server"),
-    _("Select or enter DNS server address"),
+    _("Select or enter DNS server address")
   );
   Object.entries(main.DNS_SERVER_OPTIONS).forEach(([key, label]) => {
     o.value(key, _(label));
@@ -280,7 +303,7 @@ function createSectionContent(section) {
     "community_lists",
     _("Community Lists"),
     _("Select a predefined list for routing") +
-    ' <a href="https://github.com/itdoginfo/allow-domains" target="_blank">github.com/itdoginfo/allow-domains</a>',
+      ' <a href="https://github.com/itdoginfo/allow-domains" target="_blank">github.com/itdoginfo/allow-domains</a>'
   );
   o.placeholder = "Service list";
   Object.entries(main.DOMAIN_LIST_OPTIONS).forEach(([key, label]) => {
@@ -315,7 +338,7 @@ function createSectionContent(section) {
             E("strong", {}, _("Regional options cannot be used together")),
             E("br"),
             _(
-              "Warning: %s cannot be used together with %s. Previous selections have been removed.",
+              "Warning: %s cannot be used together with %s. Previous selections have been removed."
             ).format(removedRegions.join(", "), lastSelected),
           ]),
         );
@@ -334,7 +357,7 @@ function createSectionContent(section) {
               E("strong", {}, _("Russia inside restrictions")),
               E("br"),
               _(
-                "Warning: Russia inside can only be used with %s. %s already in Russia inside and have been removed from selection.",
+                "Warning: Russia inside can only be used with %s. %s already in Russia inside and have been removed from selection."
               ).format(
                 main.ALLOWED_WITH_RUSSIA_INSIDE.map(
                   (key) => main.DOMAIN_LIST_OPTIONS[key],
@@ -367,7 +390,7 @@ function createSectionContent(section) {
     form.ListValue,
     "user_domain_list_type",
     _("User Domain List Type"),
-    _("Select the list type for adding custom domains"),
+    _("Select the list type for adding custom domains")
   );
   o.value("disabled", _("Disabled"));
   o.value("dynamic", _("Dynamic List"));
@@ -381,7 +404,7 @@ function createSectionContent(section) {
     _("User Domains"),
     _(
       "Enter domain names without protocols, e.g. example.com or sub.example.com",
-    ),
+    )
   );
   o.placeholder = "Domains list";
   o.depends("user_domain_list_type", "dynamic");
@@ -407,7 +430,7 @@ function createSectionContent(section) {
     _("User Domains List"),
     _(
       "Enter domain names separated by commas, spaces, or newlines. You can add comments using //",
-    ),
+    )
   );
   o.placeholder =
     "example.com, sub.example.com\n// Social networks\ndomain.com test.com // personal domains";
@@ -424,7 +447,7 @@ function createSectionContent(section) {
 
     if (!domains.length) {
       return _(
-        "At least one valid domain must be specified. Comments-only content is not allowed.",
+        "At least one valid domain must be specified. Comments-only content is not allowed."
       );
     }
 
@@ -447,7 +470,7 @@ function createSectionContent(section) {
     form.ListValue,
     "user_subnet_list_type",
     _("User Subnet List Type"),
-    _("Select the list type for adding custom subnets"),
+    _("Select the list type for adding custom subnets")
   );
   o.value("disabled", _("Disabled"));
   o.value("dynamic", _("Dynamic List"));
@@ -461,7 +484,7 @@ function createSectionContent(section) {
     _("User Subnets"),
     _(
       "Enter subnets in CIDR notation (e.g. 103.21.244.0/22) or single IP addresses",
-    ),
+    )
   );
   o.placeholder = "IP or subnet";
   o.depends("user_subnet_list_type", "dynamic");
@@ -487,8 +510,8 @@ function createSectionContent(section) {
     _("User Subnets List"),
     _(
       "Enter subnets in CIDR notation or single IP addresses, separated by commas, spaces, or newlines. " +
-      "You can add comments using //",
-    ),
+        "You can add comments using //",
+    )
   );
   o.placeholder =
     "103.21.244.0/22\n// Google DNS\n8.8.8.8\n1.1.1.1/32, 9.9.9.9 // Cloudflare and Quad9";
@@ -505,7 +528,7 @@ function createSectionContent(section) {
 
     if (!subnets.length) {
       return _(
-        "At least one valid subnet or IP must be specified. Comments-only content is not allowed.",
+        "At least one valid subnet or IP must be specified. Comments-only content is not allowed."
       );
     }
 
@@ -526,7 +549,7 @@ function createSectionContent(section) {
     form.DynamicList,
     "local_domain_lists",
     _("Local Domain Lists"),
-    _("Specify the path to the list file located on the router filesystem"),
+    _("Specify the path to the list file located on the router filesystem")
   );
   o.placeholder = "/path/file.lst";
   o.rmempty = true;
@@ -549,7 +572,7 @@ function createSectionContent(section) {
     form.DynamicList,
     "local_subnet_lists",
     _("Local Subnet Lists"),
-    _("Specify the path to the list file located on the router filesystem"),
+    _("Specify the path to the list file located on the router filesystem")
   );
   o.placeholder = "/path/file.lst";
   o.rmempty = true;
@@ -572,7 +595,7 @@ function createSectionContent(section) {
     form.DynamicList,
     "remote_domain_lists",
     _("Remote Domain Lists"),
-    _("Specify remote URLs to download and use domain lists"),
+    _("Specify remote URLs to download and use domain lists")
   );
   o.placeholder = "https://example.com/domains.srs";
   o.rmempty = true;
@@ -595,7 +618,7 @@ function createSectionContent(section) {
     form.DynamicList,
     "remote_subnet_lists",
     _("Remote Subnet Lists"),
-    _("Specify remote URLs to download and use subnet lists"),
+    _("Specify remote URLs to download and use subnet lists")
   );
   o.placeholder = "https://example.com/subnets.srs";
   o.rmempty = true;
@@ -620,10 +643,12 @@ function createSectionContent(section) {
     _("Fully Routed IPs"),
     _(
       "Specify local IP addresses or subnets whose traffic will always be routed through the configured route",
-    ),
+    )
   );
   o.placeholder = "192.168.1.2 or 192.168.1.0/24";
   o.rmempty = true;
+  o.depends("connection_type", "proxy");
+  o.depends("connection_type", "vpn");
   o.validate = function (section_id, value) {
     // Optional
     if (!value || value.length === 0) {
@@ -645,10 +670,12 @@ function createSectionContent(section) {
     _("Enable Mixed Proxy"),
     _(
       "Enable the mixed proxy, allowing this section to route traffic through both HTTP and SOCKS proxies",
-    ),
+    )
   );
   o.default = "0";
   o.rmempty = false;
+  o.depends("connection_type", "proxy");
+  o.depends("connection_type", "vpn");
 
   o = section.option(
     form.Value,
@@ -656,8 +683,8 @@ function createSectionContent(section) {
     _("Mixed Proxy Port"),
     _(
       "Specify the port number on which the mixed proxy will run for this section. " +
-      "Make sure the selected port is not used by another service",
-    ),
+        "Make sure the selected port is not used by another service",
+    )
   );
   o.rmempty = false;
   o.depends("mixed_proxy_enabled", "1");

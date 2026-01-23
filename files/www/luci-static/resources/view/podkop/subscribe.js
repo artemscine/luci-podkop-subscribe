@@ -198,8 +198,8 @@ function refetchConfigsForSection(select) {
 
   var newType = select.value;
 
-  // Only refetch for url/urltest modes (not outbound - it has separate subscribe_url_outbound)
-  if (newType !== "url" && newType !== "urltest") {
+  // Only refetch for url/urltest/selector modes
+  if (newType !== "url" && newType !== "urltest" && newType !== "selector") {
     removeConfigLists();
     return;
   }
@@ -224,11 +224,12 @@ function refetchConfigsForSection(select) {
                              subscribeInput.parentElement;
 
     var isUrltest = (newType === "urltest");
+    var isSelector = (newType === "selector");
     var listId = isUrltest
       ? "podkop-subscribe-config-list-urltest-" + section_id
-      : "podkop-subscribe-config-list-" + section_id;
+      : (isSelector ? "podkop-subscribe-config-list-selector-" + section_id : "podkop-subscribe-config-list-" + section_id);
 
-    fetchConfigs(subscribeUrl, subscribeContainer, listId, false, section_id, isUrltest);
+    fetchConfigs(subscribeUrl, subscribeContainer, listId, false, section_id, isUrltest, isSelector);
   }
 }
 
@@ -300,13 +301,13 @@ function findSubscribeInput(ev, section_id, fieldName) {
 
   // First try: find by exact section_id in element ID (with widget prefix)
   subscribeInput = document.querySelector(
-    "#widget\\.cbid\\.podkop\\." + section_id + "\\." + fieldName
+    "#widget.cbid.podkop." + section_id + "." + fieldName
   );
   if (subscribeInput) return subscribeInput;
 
   // Second try: without widget prefix
   subscribeInput = document.querySelector(
-    "#cbid\\.podkop\\." + section_id + "\\." + fieldName
+    "#cbid.podkop." + section_id + "." + fieldName
   );
   if (subscribeInput) return subscribeInput;
 
@@ -419,15 +420,15 @@ function createLoadingIndicator(id) {
 }
 
 // Create config list UI
-function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest) {
+function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest, isSelector) {
   var configListContainer = document.createElement("div");
   configListContainer.id = listId;
   configListContainer.className = "cbi-value";
 
   var shouldShow = shouldShowConfigList();
   configListContainer.style.cssText =
-    "margin-top: 15px; margin-bottom: 15px;" +
-    (shouldShow ? "" : "display: none;");
+    "margin-top: 15px; margin-bottom: 15px;"
+    + (shouldShow ? "" : "display: none;");
 
   var labelContainer = document.createElement("label");
   labelContainer.className = "cbi-value-title podkop-subscribe-label";
@@ -445,16 +446,19 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest) 
     titleText = _("Нажмите на конфигурацию для применения в Xray");
   } else if (isUrltest) {
     titleText = _("Нажмите на конфигурации для добавления в URLTest (повторный клик - удаление)");
+  } else if (isSelector) {
+    titleText = _("Нажмите на конфигурации для добавления в Selector (повторный клик - удаление)");
   } else {
     titleText = _("Нажмите на конфигурацию для выбора");
   }
   title.textContent = titleText + " (" + configs.length + ")";
 
-  // Add counter for urltest mode
-  if (isUrltest) {
+  // Add counter for urltest/selector mode
+  if (isUrltest || isSelector) {
+    var counterIdSuffix = isSelector ? "selector" : "urltest";
     var counter = document.createElement("span");
     counter.className = "podkop-subscribe-urltest-counter";
-    counter.id = "urltest-counter-" + section_id;
+    counter.id = "podkop-subscribe-" + counterIdSuffix + "-counter-" + section_id;
     counter.textContent = _("Выбрано: 0");
     title.appendChild(counter);
   }
@@ -464,9 +468,11 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest) 
   var configList = document.createElement("div");
   configList.className = "podkop-subscribe-list";
 
-  // Store for urltest selected configs
+  // Store for selected configs
   if (isUrltest) {
     configList._urltestSelected = [];
+  } else if (isSelector) {
+    configList._selectorSelected = [];
   }
 
   configs.forEach(function (config, index) {
@@ -504,13 +510,15 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest) 
 
     configItem.appendChild(configTitle);
 
-    // Store config data on element for urltest
+    // Store config data on element for urltest/selector
     configItem._configData = config;
 
     if (isOutbound) {
       configItem.onclick = createOutboundClickHandler(config, configItem, configList);
     } else if (isUrltest) {
       configItem.onclick = createUrltestClickHandler(config, configItem, configList, section_id, isXhttp);
+    } else if (isSelector) {
+      configItem.onclick = createSelectorClickHandler(config, configItem, configList, section_id, isXhttp);
     } else {
       configItem.onclick = createUrlClickHandler(config, configItem, configList, section_id, isXhttp);
     }
@@ -545,7 +553,7 @@ function createUrlClickHandler(config, configItem, configList, section_id, isXht
     var proxyTextarea =
       document.getElementById("widget.cbid.podkop." + section_id + ".proxy_string") ||
       document.getElementById("cbid.podkop." + section_id + ".proxy_string") ||
-      document.querySelector('textarea[id*="podkop.' + section_id + '.proxy_string"]');
+      document.querySelector('textarea[id*="podkop." + section_id + ".proxy_string"]');
 
     if (proxyTextarea) {
       proxyTextarea.value = config.url;
@@ -614,7 +622,7 @@ function createUrltestClickHandler(config, configItem, configList, section_id, i
     }
 
     // Update counter
-    var counter = document.getElementById("urltest-counter-" + section_id);
+    var counter = document.getElementById("podkop-subscribe-urltest-counter-" + section_id);
     if (counter) {
       counter.textContent = _("Выбрано: ") + configList._urltestSelected.length;
     }
@@ -624,10 +632,70 @@ function createUrltestClickHandler(config, configItem, configList, section_id, i
   };
 }
 
+// Click handler for Selector mode (multi-select toggle)
+function createSelectorClickHandler(config, configItem, configList, section_id, isXhttp) {
+  return function (e) {
+    e.stopPropagation();
+
+    // Block xhttp configs
+    if (isXhttp) {
+      var errorDiv = createErrorMessage(_("XHTTP не поддерживается по умолчанию"), true);
+      configItem.appendChild(errorDiv);
+      setTimeout(function () {
+        if (errorDiv.parentNode) {
+          errorDiv.parentNode.removeChild(errorDiv);
+        }
+      }, 3000);
+      return;
+    }
+
+    // Toggle selection (reusing urltest-selected class for visual styling)
+    var isCurrentlySelected = configItem.classList.contains("urltest-selected");
+
+    if (isCurrentlySelected) {
+      // Remove from selection
+      configItem.classList.remove("urltest-selected");
+
+      // Remove from array
+      var idx = configList._selectorSelected.indexOf(config.url);
+      if (idx > -1) {
+        configList._selectorSelected.splice(idx, 1);
+      }
+    } else {
+      // Add to selection
+      configItem.classList.add("urltest-selected");
+
+      // Add to array
+      if (configList._selectorSelected.indexOf(config.url) === -1) {
+        configList._selectorSelected.push(config.url);
+      }
+    }
+
+    // Update counter
+    var counter = document.getElementById("podkop-subscribe-selector-counter-" + section_id);
+    if (counter) {
+      counter.textContent = _("Выбрано: ") + configList._selectorSelected.length;
+    }
+
+    // Update the selector_proxy_links DynamicList field
+    updateSelectorProxyLinks(section_id, configList._selectorSelected);
+  };
+}
+
 // Update urltest_proxy_links DynamicList field with selected configs
 function updateUrltestProxyLinks(section_id, selectedUrls) {
   var baseId = "cbid.podkop." + section_id + ".urltest_proxy_links";
+  updateDynamicList(section_id, baseId, selectedUrls, "urltest_proxy_links");
+}
 
+// Update selector_proxy_links DynamicList field with selected configs
+function updateSelectorProxyLinks(section_id, selectedUrls) {
+  var baseId = "cbid.podkop." + section_id + ".selector_proxy_links";
+  updateDynamicList(section_id, baseId, selectedUrls, "selector_proxy_links");
+}
+
+// Helper to update any DynamicList
+function updateDynamicList(section_id, baseId, selectedUrls, fieldName) {
   // Find the DynamicList widget container
   var dynlistWidget = document.querySelector(
     '.cbi-dynlist input[name="' + baseId + '"]'
@@ -647,7 +715,7 @@ function updateUrltestProxyLinks(section_id, selectedUrls) {
   }
 
   if (!dynlistWidget) {
-    console.warn("Could not find urltest_proxy_links for section:", section_id);
+    console.warn("Could not find " + fieldName + " for section:", section_id);
     return;
   }
 
@@ -812,7 +880,7 @@ function createOutboundClickHandler(config, configItem, configList) {
 }
 
 // Fetch configs handler
-function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, section_id, isUrltest) {
+function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, section_id, isUrltest, isSelector) {
   // Remove old list for this section
   var existingList = document.getElementById(listId);
   if (existingList && existingList.parentNode) {
@@ -820,7 +888,7 @@ function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, sect
   }
 
   // Remove old loading indicator for this section
-  var loadingSuffix = isOutbound ? "-outbound" : (isUrltest ? "-urltest" : "");
+  var loadingSuffix = isOutbound ? "-outbound" : (isUrltest ? "-urltest" : (isSelector ? "-selector" : ""));
   var loadingId = "podkop-subscribe-loading-" + section_id + loadingSuffix;
   var existingLoading = document.getElementById(loadingId);
   if (existingLoading && existingLoading.parentNode) {
@@ -874,7 +942,8 @@ function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, sect
             listId,
             isOutbound,
             section_id,
-            isUrltest
+            isUrltest,
+            isSelector
           );
 
           if (subscribeContainer.nextSibling) {
@@ -941,7 +1010,7 @@ function enhanceSectionWithSubscribe(section) {
     initConfigListHandlers();
   }, 500);
 
-  // Subscribe URL for proxy_config_type = "url" and "urltest"
+  // Subscribe URL for proxy_config_type = "url", "urltest" and "selector"
   var o = section.option(
     form.Value,
     "subscribe_url",
@@ -950,6 +1019,7 @@ function enhanceSectionWithSubscribe(section) {
   );
   o.depends("proxy_config_type", "url");
   o.depends("proxy_config_type", "urltest");
+  o.depends("proxy_config_type", "selector");
   o.placeholder = "https://example.com/subscribe";
   o.rmempty = true;
 
@@ -1002,6 +1072,7 @@ function enhanceSectionWithSubscribe(section) {
       "podkop-subscribe-config-list-" + section_id,
       false,
       section_id,
+      false,
       false
     );
 
@@ -1045,6 +1116,51 @@ function enhanceSectionWithSubscribe(section) {
       "podkop-subscribe-config-list-urltest-" + section_id,
       false,
       section_id,
+      true,
+      false
+    );
+
+    return false;
+  };
+
+  // Fetch button for Selector mode
+  o = section.option(
+    form.Button,
+    "subscribe_fetch_selector",
+    _("Получить конфигурации"),
+    _("Получить конфигурации из Subscribe URL для выбора в Selector")
+  );
+  o.depends("proxy_config_type", "selector");
+  o.inputtitle = _("Получить");
+  o.inputstyle = "add";
+
+  o.onclick = function (ev, section_id) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+
+    var subscribeUrl = getSubscribeUrl(ev, section_id, "subscribe_url");
+
+    if (!subscribeUrl || subscribeUrl.length === 0) {
+      ui.addNotification(null, E("p", {}, _("Пожалуйста, введите Subscribe URL")));
+      return false;
+    }
+
+    var subscribeInput = findSubscribeInput(ev, section_id, "subscribe_url");
+    var subscribeContainer = null;
+    if (subscribeInput) {
+      subscribeContainer =
+        subscribeInput.closest(".cbi-value") ||
+        subscribeInput.closest(".cbi-section") ||
+        subscribeInput.parentElement;
+    }
+
+    fetchConfigs(
+      subscribeUrl,
+      subscribeContainer,
+      "podkop-subscribe-config-list-selector-" + section_id,
+      false,
+      section_id,
+      false,
       true
     );
 
@@ -1113,6 +1229,7 @@ function enhanceSectionWithSubscribe(section) {
       "podkop-subscribe-config-list-outbound-" + section_id,
       true,
       section_id,
+      false,
       false
     );
 
