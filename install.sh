@@ -5,6 +5,76 @@ set -e
 
 REPO_URL="https://raw.githubusercontent.com/artemscine/luci-podkop-subscribe/main"
 BASE_URL="${REPO_URL}/files"
+OPENWRT_RELEASE=""
+PKG_MANAGER=""
+
+get_openwrt_release() {
+    if [ -r /etc/openwrt_release ]; then
+        OPENWRT_RELEASE=$(grep "^DISTRIB_RELEASE=" /etc/openwrt_release | cut -d"'" -f2)
+    fi
+
+    if [ -z "$OPENWRT_RELEASE" ] && [ -r /etc/os-release ]; then
+        OPENWRT_RELEASE=$(grep "^OPENWRT_RELEASE=" /etc/os-release | cut -d'"' -f2)
+    fi
+}
+
+detect_package_manager() {
+    get_openwrt_release
+
+    case "$OPENWRT_RELEASE" in
+        25.12.*)
+            PKG_MANAGER="apk"
+            ;;
+        *)
+            PKG_MANAGER="opkg"
+            ;;
+    esac
+
+    if [ "$PKG_MANAGER" = "apk" ] && ! command -v apk >/dev/null 2>&1; then
+        if command -v opkg >/dev/null 2>&1; then
+            PKG_MANAGER="opkg"
+        fi
+    fi
+
+    if [ "$PKG_MANAGER" = "opkg" ] && ! command -v opkg >/dev/null 2>&1; then
+        if command -v apk >/dev/null 2>&1; then
+            PKG_MANAGER="apk"
+        fi
+    fi
+
+    if [ -z "$PKG_MANAGER" ] || ! command -v "$PKG_MANAGER" >/dev/null 2>&1; then
+        echo "Error: No supported package manager found (opkg/apk)"
+        exit 1
+    fi
+}
+
+pkg_is_installed() {
+    pkg_name="$1"
+
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        apk info -e "$pkg_name" >/dev/null 2>&1
+    else
+        opkg list-installed | grep -qE "^${pkg_name} "
+    fi
+}
+
+pkg_update() {
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        apk update >/dev/null 2>&1 || true
+    else
+        opkg update >/dev/null 2>&1 || true
+    fi
+}
+
+pkg_install() {
+    pkg_name="$1"
+
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        apk add "$pkg_name"
+    else
+        opkg install "$pkg_name"
+    fi
+}
 
 echo "=========================================="
 echo "luci-app-podkop-subscribe Installation"
@@ -17,10 +87,22 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+detect_package_manager
+if [ -n "$OPENWRT_RELEASE" ]; then
+    echo "Detected OpenWrt ${OPENWRT_RELEASE}, using ${PKG_MANAGER}"
+else
+    echo "OpenWrt version not detected, using ${PKG_MANAGER}"
+fi
+echo ""
+
 # Check if Podkop is installed (check for either podkop or luci-app-podkop)
-if ! opkg list-installed | grep -qE "^(podkop|luci-app-podkop) "; then
+if ! pkg_is_installed podkop && ! pkg_is_installed luci-app-podkop; then
     echo "Error: Podkop is not installed"
-    echo "Please install Podkop first: opkg install podkop"
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        echo "Please install Podkop first: apk add podkop"
+    else
+        echo "Please install Podkop first: opkg install podkop"
+    fi
     exit 1
 fi
 
@@ -34,8 +116,8 @@ fi
 # Check if wget is installed
 if ! command -v wget >/dev/null 2>&1; then
     echo "Installing wget..."
-    opkg update >/dev/null 2>&1 || true
-    opkg install wget || {
+    pkg_update
+    pkg_install wget || {
         echo "Error: Failed to install wget"
         exit 1
     }
@@ -108,13 +190,6 @@ wget -q -O /www/cgi-bin/podkop-subscribe "${BASE_URL}/www/cgi-bin/podkop-subscri
 }
 chmod +x /www/cgi-bin/podkop-subscribe
 
-echo "  - Installing podkop-xray-config..."
-wget -q -O /www/cgi-bin/podkop-xray-config "${BASE_URL}/www/cgi-bin/podkop-xray-config" || {
-    echo "Error: Failed to download podkop-xray-config"
-    exit 1
-}
-chmod +x /www/cgi-bin/podkop-xray-config
-
 # Download JavaScript files
 echo "  - Installing section.js..."
 wget -q -O /www/luci-static/resources/view/podkop/section.js "${BASE_URL}/www/luci-static/resources/view/podkop/section.js" || {
@@ -155,12 +230,13 @@ echo "The plugin has been installed. Please:"
 echo "1. Clear your browser cache (Ctrl+F5)"
 echo "2. Navigate to: LuCI -> Services -> Podkop"
 echo "3. Set Connection Type to 'Proxy'"
-echo "4. Set Configuration Type to 'Connection URL' or 'Outbound Config'"
+echo "4. Set Configuration Type to 'Connection URL', 'Selector' or 'URLTest'"
 echo "5. You should see the Subscribe URL field"
 echo ""
 echo "Features:"
 echo "  - Connection URL mode: Get configurations and apply to Podkop proxy"
-echo "  - Outbound Config mode: Get configurations and apply directly to Xray"
+echo "  - Selector mode: Fetch configurations and add selected entries to Selector"
+echo "  - URLTest mode: Fetch configurations and add selected entries to URLTest"
 echo "  - Supported protocols: vless://, ss://, trojan://, hy2://, hysteria2://"
 echo "  - Theme support: Automatically adapts to light/dark themes"
 echo ""

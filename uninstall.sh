@@ -26,12 +26,6 @@ if [ -f /www/cgi-bin/podkop-subscribe ]; then
     PLUGIN_REMOVED=1
 fi
 
-if [ -f /www/cgi-bin/podkop-xray-config ]; then
-    rm -f /www/cgi-bin/podkop-xray-config
-    echo "  ✓ Removed: /www/cgi-bin/podkop-xray-config"
-    PLUGIN_REMOVED=1
-fi
-
 # Remove JavaScript files
 if [ -f /www/luci-static/resources/view/podkop/subscribe.js ]; then
     rm -f /www/luci-static/resources/view/podkop/subscribe.js
@@ -64,7 +58,7 @@ UCI_CLEANED=0
 
 # Get all podkop sections and remove subscribe_url options
 if command -v uci >/dev/null 2>&1 && [ -f /etc/config/podkop ]; then
-    # Find all options with subscribe_url or subscribe_url_outbound and delete them
+    # Remove current subscribe fields and legacy outbound subscribe fields from old versions
     for key in $(uci show podkop 2>/dev/null | grep -E "\.subscribe_url=|\.subscribe_url_outbound=" | cut -d'=' -f1); do
         # key = podkop.gg.subscribe_url
         if [ -n "$key" ]; then

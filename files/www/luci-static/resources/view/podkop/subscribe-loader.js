@@ -232,7 +232,7 @@
   // Update visibility based on proxy_config_type
   function updateSubscribeVisibility(proxyConfigTypeField, subscribeContainer) {
     var value = proxyConfigTypeField.value;
-    if (value === "url" || value === "outbound") {
+    if (value === "url" || value === "urltest" || value === "selector") {
       subscribeContainer.style.display = "";
     } else {
       subscribeContainer.style.display = "none";

@@ -420,7 +420,7 @@ function createLoadingIndicator(id) {
 }
 
 // Create config list UI
-function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest, isSelector) {
+function createConfigListUI(configs, listId, section_id, isUrltest, isSelector) {
   var configListContainer = document.createElement("div");
   configListContainer.id = listId;
   configListContainer.className = "cbi-value";
@@ -442,9 +442,7 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest, 
   title.className = "podkop-subscribe-title";
 
   var titleText;
-  if (isOutbound) {
-    titleText = _("Нажмите на конфигурацию для применения в Xray");
-  } else if (isUrltest) {
+  if (isUrltest) {
     titleText = _("Нажмите на конфигурации для добавления в URLTest (повторный клик - удаление)");
   } else if (isSelector) {
     titleText = _("Нажмите на конфигурации для добавления в Selector (повторный клик - удаление)");
@@ -481,7 +479,7 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest, 
 
     // Check if this is an xhttp config
     var isXhttp = isXhttpConfig(config.url);
-    if (isXhttp && !isOutbound) {
+    if (isXhttp) {
       configItem.classList.add("xhttp-disabled");
     }
 
@@ -500,11 +498,11 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest, 
     }
 
     // Add xhttp warning badge
-    if (isXhttp && !isOutbound) {
+    if (isXhttp) {
       var xhttpBadge = document.createElement("span");
       xhttpBadge.className = "podkop-subscribe-xhttp-badge";
       xhttpBadge.textContent = "XHTTP";
-      xhttpBadge.title = _("XHTTP не поддерживается по умолчанию");
+      xhttpBadge.title = _("XHTTP не поддерживается");
       configTitle.appendChild(xhttpBadge);
     }
 
@@ -513,9 +511,7 @@ function createConfigListUI(configs, listId, isOutbound, section_id, isUrltest, 
     // Store config data on element for urltest/selector
     configItem._configData = config;
 
-    if (isOutbound) {
-      configItem.onclick = createOutboundClickHandler(config, configItem, configList);
-    } else if (isUrltest) {
+    if (isUrltest) {
       configItem.onclick = createUrltestClickHandler(config, configItem, configList, section_id, isXhttp);
     } else if (isSelector) {
       configItem.onclick = createSelectorClickHandler(config, configItem, configList, section_id, isXhttp);
@@ -539,7 +535,7 @@ function createUrlClickHandler(config, configItem, configList, section_id, isXht
 
     // Block xhttp configs
     if (isXhttp) {
-      var errorDiv = createErrorMessage(_("XHTTP не поддерживается по умолчанию"), true);
+      var errorDiv = createErrorMessage(_("XHTTP не поддерживается"), true);
       configItem.appendChild(errorDiv);
       setTimeout(function () {
         if (errorDiv.parentNode) {
@@ -589,7 +585,7 @@ function createUrltestClickHandler(config, configItem, configList, section_id, i
 
     // Block xhttp configs
     if (isXhttp) {
-      var errorDiv = createErrorMessage(_("XHTTP не поддерживается по умолчанию"), true);
+      var errorDiv = createErrorMessage(_("XHTTP не поддерживается"), true);
       configItem.appendChild(errorDiv);
       setTimeout(function () {
         if (errorDiv.parentNode) {
@@ -639,7 +635,7 @@ function createSelectorClickHandler(config, configItem, configList, section_id, 
 
     // Block xhttp configs
     if (isXhttp) {
-      var errorDiv = createErrorMessage(_("XHTTP не поддерживается по умолчанию"), true);
+      var errorDiv = createErrorMessage(_("XHTTP не поддерживается"), true);
       configItem.appendChild(errorDiv);
       setTimeout(function () {
         if (errorDiv.parentNode) {
@@ -793,94 +789,8 @@ function updateDynamicList(section_id, baseId, selectedUrls, fieldName) {
   }, delay + 100);
 }
 
-// Click handler for Outbound mode
-function createOutboundClickHandler(config, configItem, configList) {
-  return function (e) {
-    e.stopPropagation();
-
-    var loadingText = createWarningMessage(_("Применение конфигурации..."));
-    configItem.appendChild(loadingText);
-
-    var xhrConfig = new XMLHttpRequest();
-    xhrConfig.open("POST", "/cgi-bin/podkop-xray-config", true);
-    xhrConfig.setRequestHeader("Content-Type", "text/plain");
-
-    xhrConfig.onreadystatechange = function () {
-      if (xhrConfig.readyState === 4) {
-        if (loadingText.parentNode) {
-          loadingText.parentNode.removeChild(loadingText);
-        }
-
-        if (xhrConfig.status === 200) {
-          try {
-            JSON.parse(xhrConfig.responseText);
-
-            // Reset all items
-            var allItems = configList.querySelectorAll(".podkop-subscribe-item");
-            allItems.forEach(function (item) {
-              item.classList.remove("selected");
-            });
-
-            configItem.classList.add("selected");
-
-            var successDiv = createSuccessMessage(
-              _("Конфигурация применена к Xray и служба перезапущена")
-            );
-            configItem.appendChild(successDiv);
-            setTimeout(function () {
-              if (successDiv.parentNode) {
-                successDiv.parentNode.removeChild(successDiv);
-              }
-            }, 3000);
-          } catch (err) {
-            var errorDiv = createErrorMessage(
-              _("Ошибка при применении конфигурации: ") + err.message,
-              true
-            );
-            configItem.appendChild(errorDiv);
-            setTimeout(function () {
-              if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-              }
-            }, 5000);
-          }
-        } else {
-          var errorDiv = createErrorMessage(
-            _("Ошибка при применении конфигурации: HTTP ") + xhrConfig.status,
-            true
-          );
-          configItem.appendChild(errorDiv);
-          setTimeout(function () {
-            if (errorDiv.parentNode) {
-              errorDiv.parentNode.removeChild(errorDiv);
-            }
-          }, 5000);
-        }
-      }
-    };
-
-    xhrConfig.onerror = function () {
-      if (loadingText.parentNode) {
-        loadingText.parentNode.removeChild(loadingText);
-      }
-      var errorDiv = createErrorMessage(
-        _("Ошибка сети при применении конфигурации"),
-        true
-      );
-      configItem.appendChild(errorDiv);
-      setTimeout(function () {
-        if (errorDiv.parentNode) {
-          errorDiv.parentNode.removeChild(errorDiv);
-        }
-      }, 5000);
-    };
-
-    xhrConfig.send(config.url);
-  };
-}
-
 // Fetch configs handler
-function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, section_id, isUrltest, isSelector) {
+function fetchConfigs(subscribeUrl, subscribeContainer, listId, section_id, isUrltest, isSelector) {
   // Remove old list for this section
   var existingList = document.getElementById(listId);
   if (existingList && existingList.parentNode) {
@@ -888,7 +798,7 @@ function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, sect
   }
 
   // Remove old loading indicator for this section
-  var loadingSuffix = isOutbound ? "-outbound" : (isUrltest ? "-urltest" : (isSelector ? "-selector" : ""));
+  var loadingSuffix = isUrltest ? "-urltest" : (isSelector ? "-selector" : "");
   var loadingId = "podkop-subscribe-loading-" + section_id + loadingSuffix;
   var existingLoading = document.getElementById(loadingId);
   if (existingLoading && existingLoading.parentNode) {
@@ -940,7 +850,6 @@ function fetchConfigs(subscribeUrl, subscribeContainer, listId, isOutbound, sect
           var configListContainer = createConfigListUI(
             configs,
             listId,
-            isOutbound,
             section_id,
             isUrltest,
             isSelector
@@ -1070,7 +979,6 @@ function enhanceSectionWithSubscribe(section) {
       subscribeUrl,
       subscribeContainer,
       "podkop-subscribe-config-list-" + section_id,
-      false,
       section_id,
       false,
       false
@@ -1114,7 +1022,6 @@ function enhanceSectionWithSubscribe(section) {
       subscribeUrl,
       subscribeContainer,
       "podkop-subscribe-config-list-urltest-" + section_id,
-      false,
       section_id,
       true,
       false
@@ -1158,79 +1065,9 @@ function enhanceSectionWithSubscribe(section) {
       subscribeUrl,
       subscribeContainer,
       "podkop-subscribe-config-list-selector-" + section_id,
-      false,
       section_id,
       false,
       true
-    );
-
-    return false;
-  };
-
-  // Subscribe URL for proxy_config_type = "outbound"
-  o = section.option(
-    form.Value,
-    "subscribe_url_outbound",
-    _("Subscribe URL"),
-    _("Введите Subscribe URL для получения конфигураций")
-  );
-  o.depends("proxy_config_type", "outbound");
-  o.placeholder = "https://example.com/subscribe";
-  o.rmempty = true;
-
-  o.validate = function (section_id, value) {
-    if (!value || value.length === 0) {
-      return true;
-    }
-    var validation = main.validateUrl(value);
-    if (validation.valid) {
-      return true;
-    }
-    return validation.message;
-  };
-
-  // Fetch button for Outbound mode
-  o = section.option(
-    form.Button,
-    "subscribe_fetch_outbound",
-    _("Получить конфигурации"),
-    _("Получить конфигурации из Subscribe URL")
-  );
-  o.depends("proxy_config_type", "outbound");
-  o.inputtitle = _("Получить");
-  o.inputstyle = "add";
-
-  o.onclick = function (ev, section_id) {
-    if (ev && ev.preventDefault) ev.preventDefault();
-    if (ev && ev.stopPropagation) ev.stopPropagation();
-
-    var subscribeUrl = getSubscribeUrl(ev, section_id, "subscribe_url_outbound");
-
-    if (!subscribeUrl || subscribeUrl.length === 0) {
-      ui.addNotification(
-        null,
-        E("p", {}, _("Пожалуйста, введите Subscribe URL"))
-      );
-      return false;
-    }
-
-    var subscribeInput = findSubscribeInput(ev, section_id, "subscribe_url_outbound");
-    var subscribeContainer = null;
-    if (subscribeInput) {
-      subscribeContainer =
-        subscribeInput.closest(".cbi-value") ||
-        subscribeInput.closest(".cbi-section") ||
-        subscribeInput.parentElement;
-    }
-
-    fetchConfigs(
-      subscribeUrl,
-      subscribeContainer,
-      "podkop-subscribe-config-list-outbound-" + section_id,
-      true,
-      section_id,
-      false,
-      false
     );
 
     return false;
